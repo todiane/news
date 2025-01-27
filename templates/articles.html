@@ -1,0 +1,30 @@
+<!-- templates/articles.html -->
+{% extends "base.html" %}
+{% from 'components/news_card.html' import news_card %}
+
+{% block title %}Articles - News API{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Latest Articles</h1>
+    <p class="text-gray-600 mt-2">Stay up to date with the latest development news</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for article in articles %}
+        {{ news_card(
+            title=article.title,
+            content=article.content,
+            url=article.url,
+            source=article.source,
+            published_date=article.published_date
+        ) }}
+    {% endfor %}
+</div>
+
+{% if not articles %}
+<div class="text-center py-12">
+    <h3 class="text-xl text-gray-600">No articles found</h3>
+</div>
+{% endif %}
+{% endblock %}

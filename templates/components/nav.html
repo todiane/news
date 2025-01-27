@@ -1,0 +1,29 @@
+<!-- templates/components/nav.html -->
+<nav class="bg-white shadow-lg">
+  <div class="max-w-6xl mx-auto px-4">
+      <div class="flex justify-between h-16">
+          <div class="flex space-x-7">
+              <div class="flex items-center">
+                  <a href="/" class="text-xl font-bold text-gray-800">News API</a>
+              </div>
+              <!-- Primary Navigation -->
+              <div class="hidden md:flex items-center space-x-1">
+                  <a href="/" class="py-4 px-2 text-gray-500 hover:text-gray-900">Home</a>
+                  <a href="/articles" class="py-4 px-2 text-gray-500 hover:text-gray-900">Articles</a>
+                  <a href="/about" class="py-4 px-2 text-gray-500 hover:text-gray-900">About</a>
+              </div>
+          </div>
+          <!-- Search Bar -->
+          <div class="flex items-center">
+              <form class="flex items-center">
+                  <input type="text" placeholder="Search articles..." 
+                         class="px-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <button type="submit" 
+                          class="px-4 py-2 bg-blue-500 text-white rounded-r-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      Search
+                  </button>
+              </form>
+          </div>
+      </div>
+  </div>
+</nav>
