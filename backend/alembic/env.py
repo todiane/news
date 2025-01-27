@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 
 # This adds the backend directory to Python path
-BASE_DIR = Path(__file__).parents[1]
-sys.path.append(str(BASE_DIR))
+BASE_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(BASE_DIR))
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -15,8 +15,8 @@ from alembic import context
 # Import your models and config here
 from app.db.base import Base
 from app.core.config import settings
-from app.models.article import Article  # Import your models
-from app.models.user import User       # Import your models
+from app.models.article import Article
+from app.models.user import User
 
 # this is the Alembic Config object
 config = context.config
