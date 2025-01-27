@@ -58,6 +58,9 @@ pnpm-debug.log*
 .env.*
 !.env.example
 virtualenv
+alembic.ini
+config.py
+
 
 # Build output
 dist/
