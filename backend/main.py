@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-from app.api.v1.endpoints import auth
+from app.api.v1.endpoints import auth, articles
 
 app = FastAPI(
     title="Development News API",
@@ -28,6 +28,7 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
+app.include_router(articles.router, prefix="/api/v1", tags=["articles"])
 
 # Sample data (will be replaced with database data later)
 sample_articles = [
@@ -37,8 +38,7 @@ sample_articles = [
         "url": "#",
         "source": "Python News",
         "published_date": datetime.now()
-    },
-    # ... other sample articles ...
+    }
 ]
 
 @app.get("/")
@@ -49,7 +49,7 @@ async def home(request: Request):
     )
 
 @app.get("/articles")
-async def articles(request: Request):
+async def articles_view(request: Request):
     return templates.TemplateResponse(
         "articles.html",
         {
@@ -61,7 +61,3 @@ async def articles(request: Request):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
