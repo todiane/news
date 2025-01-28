@@ -7,7 +7,7 @@ def run_fastapi():
     """Run the FastAPI development server"""
     subprocess.Popen([
         "uvicorn", 
-        "main:app", 
+        "backend.main:app", 
         "--reload",
         "--host", "0.0.0.0",
         "--port", "8000"
@@ -27,7 +27,14 @@ def main():
     
     # Ensure required directories exist
     Path("./static/css").mkdir(parents=True, exist_ok=True)
-    Path("./static/js").mkdir(parents=True, exist_ok=True)
+    
+    # Create input.css if it doesn't exist
+    input_css = Path("./static/css/input.css")
+    if not input_css.exists():
+        input_css.write_text("""@tailwind base;
+@tailwind components;
+@tailwind utilities;
+""")
     
     # Start both processes
     run_tailwind()
@@ -42,4 +49,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
