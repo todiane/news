@@ -10,21 +10,133 @@
     <p class="text-gray-600 mt-2">Stay up to date with the latest development news</p>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {% for article in articles %}
-        {{ news_card(
-            title=article.title,
-            content=article.content,
-            url=article.url,
-            source=article.source,
-            published_date=article.published_date
-        ) }}
-    {% endfor %}
+<!-- Loading indicator -->
+<div id="loading" class="text-center py-12 hidden">
+    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
 </div>
 
-{% if not articles %}
-<div class="text-center py-12">
+<!-- Articles container -->
+<div id="articles-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+</div>
+
+<!-- Error message -->
+<div id="error-message" class="text-center py-12 hidden">
+    <h3 class="text-xl text-red-600">Error loading articles</h3>
+</div>
+
+<!-- No articles message -->
+<div id="no-articles" class="text-center py-12 hidden">
     <h3 class="text-xl text-gray-600">No articles found</h3>
 </div>
-{% endif %}
+
+<!-- Pagination -->
+<div class="mt-8 flex justify-center space-x-4">
+    <button id="prev-page" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed hidden">
+        Previous
+    </button>
+    <button id="next-page" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed hidden">
+        Next
+    </button>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ARTICLES_PER_PAGE = 12;
+    let currentPage = 1;
+
+    async function fetchArticles(page = 1) {
+        const skip = (page - 1) * ARTICLES_PER_PAGE;
+        try {
+            showLoading();
+            const response = await fetch(`/api/v1/articles?skip=${skip}&limit=${ARTICLES_PER_PAGE}`);
+            if (!response.ok) throw new Error('Failed to fetch articles');
+            const articles = await response.json();
+            return articles;
+        } catch (error) {
+            console.error('Error fetching articles:', error);
+            showError();
+            return [];
+        } finally {
+            hideLoading();
+        }
+    }
+
+    function createArticleCard(article) {
+        const date = new Date(article.published_date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        return `
+            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                <div class="p-6">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">${article.title}</h3>
+                        <span class="text-sm text-gray-500">${article.source}</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">${article.content.substring(0, 200)}...</p>
+                    <div class="flex justify-between items-center">
+                        <a href="${article.url}" 
+                           class="text-blue-500 hover:text-blue-700 font-medium"
+                           target="_blank"
+                           rel="noopener noreferrer">
+                            Read more →
+                        </a>
+                        <span class="text-sm text-gray-500">${date}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function showLoading() {
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('error-message').classList.add('hidden');
+        document.getElementById('no-articles').classList.add('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loading').classList.add('hidden');
+    }
+
+    function showError() {
+        document.getElementById('error-message').classList.remove('hidden');
+        document.getElementById('articles-container').innerHTML = '';
+    }
+
+    async function loadArticles(page = 1) {
+        const articles = await fetchArticles(page);
+        const container = document.getElementById('articles-container');
+        
+        if (articles.length === 0) {
+            document.getElementById('no-articles').classList.remove('hidden');
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = articles.map(createArticleCard).join('');
+        
+        // Update pagination buttons
+        document.getElementById('prev-page').classList.toggle('hidden', page <= 1);
+        document.getElementById('next-page').classList.toggle('hidden', articles.length < ARTICLES_PER_PAGE);
+        currentPage = page;
+    }
+
+    // Event Listeners
+    document.getElementById('prev-page').addEventListener('click', () => {
+        if (currentPage > 1) loadArticles(currentPage - 1);
+    });
+
+    document.getElementById('next-page').addEventListener('click', () => {
+        loadArticles(currentPage + 1);
+    });
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadArticles();
+    });
+</script>
 {% endblock %}
