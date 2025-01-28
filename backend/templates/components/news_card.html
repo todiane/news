@@ -1,7 +1,23 @@
 <!-- templates/components/news_card.html -->
-{% macro news_card(title, content, url, source, published_date) %}
+{% macro news_card(title, content, url, source, published_date, metadata={}) %}
 <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
     <div class="p-6">
+        {% if metadata and metadata.get('api_source') == 'youtube' %}
+        <div class="aspect-w-16 aspect-h-9 mb-4">
+            <img src="{{ metadata.get('thumbnail') }}" 
+                 alt="{{ title }}"
+                 class="object-cover w-full h-48 rounded-lg" />
+            <a href="{{ url }}" 
+               class="absolute inset-0 flex items-center justify-center"
+               target="_blank"
+               rel="noopener noreferrer">
+                <span class="bg-red-600 text-white rounded-lg px-4 py-2 opacity-90 hover:opacity-100">
+                    Watch Video
+                </span>
+            </a>
+        </div>
+        {% endif %}
+        
         <div class="flex justify-between items-start">
             <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ title }}</h3>
             <span class="text-sm text-gray-500">{{ source }}</span>
@@ -12,7 +28,11 @@
                class="text-blue-500 hover:text-blue-700 font-medium"
                target="_blank"
                rel="noopener noreferrer">
-                Read more →
+                {% if metadata and metadata.get('api_source') == 'youtube' %}
+                    Watch on YouTube →
+                {% else %}
+                    Read more →
+                {% endif %}
             </a>
             <span class="text-sm text-gray-500">
                 {{ published_date.strftime('%B %d, %Y') if published_date else '' }}
