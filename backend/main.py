@@ -4,6 +4,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from app.api.v1.endpoints import auth, articles
+from app.api.v1.endpoints import auth, articles, admin
+
 
 app = FastAPI(
     title="Development News API",
@@ -29,6 +31,7 @@ app.add_middleware(
 # Include API routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(articles.router, prefix="/api/v1", tags=["articles"])
+app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 
 # Sample data (will be replaced with database data later)
 sample_articles = [
