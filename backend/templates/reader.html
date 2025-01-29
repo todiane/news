@@ -1,0 +1,293 @@
+<!-- templates/reader.html -->
+{% extends "base.html" %}
+{% from 'components/article_card.html' import article_card %}
+
+{% block title %}Reader - News API{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header with Filters -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Content Reader</h1>
+            <p class="text-gray-600 mt-2">Stay updated with your subscribed feeds</p>
+        </div>
+        
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-4">
+            <!-- Content Type Filter -->
+            <div class="relative">
+                <button id="contentTypeBtn" 
+                        onclick="toggleDropdown('contentTypeDropdown')"
+                        class="bg-white border border-gray-300 rounded-lg px-4 py-2 inline-flex items-center text-gray-700">
+                    <span id="selectedContentType">All Content</span>
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div id="contentTypeDropdown" 
+                     class="hidden absolute z-10 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                    <div class="py-1">
+                        <button onclick="filterContent('all')"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                            All Content
+                        </button>
+                        <button onclick="filterContent('articles')"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                            Articles Only
+                        </button>
+                        <button onclick="filterContent('videos')"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                            Videos Only
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="relative">
+                <button id="categoryBtn" 
+                        onclick="toggleDropdown('categoryDropdown')"
+                        class="bg-white border border-gray-300 rounded-lg px-4 py-2 inline-flex items-center text-gray-700">
+                    <span id="selectedCategory">All Categories</span>
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div id="categoryDropdown" 
+                     class="hidden absolute z-10 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                    <div class="py-1">
+                        <button onclick="filterCategory('all')"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                            All Categories
+                        </button>
+                        {% for category in categories %}
+                        <button onclick="filterCategory('{{ category }}')"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                            {{ category|title }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="relative flex-grow md:flex-grow-0">
+                <input type="text" 
+                       id="searchInput"
+                       placeholder="Search content..."
+                       onkeyup="handleSearch(event)"
+                       class="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div id="contentGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for item in items %}
+            {{ article_card(item) }}
+        {% else %}
+        <div class="col-span-full text-center py-12">
+            <h3 class="text-xl text-gray-600">No content found</h3>
+            <p class="text-gray-500 mt-2">Try adjusting your filters or adding more feeds</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-8 flex justify-center">
+        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            <button onclick="changePage('prev')"
+                    class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                Previous
+            </button>
+            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                Page {{ current_page }} of {{ total_pages }}
+            </span>
+            <button onclick="changePage('next')"
+                    class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                Next
+            </button>
+        </nav>
+    </div>
+</div>
+
+<script>
+let currentFilters = {
+    contentType: 'all',
+    category: 'all',
+    search: '',
+    page: 1
+};
+
+function toggleDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    const allDropdowns = document.querySelectorAll('[id$="Dropdown"]');
+    
+    // Hide all other dropdowns
+    allDropdowns.forEach(d => {
+        if (d.id !== dropdownId) d.classList.add('hidden');
+    });
+    
+    // Toggle current dropdown
+    dropdown.classList.toggle('hidden');
+}
+
+function filterContent(type) {
+    currentFilters.contentType = type;
+    currentFilters.page = 1;
+    document.getElementById('selectedContentType').textContent = 
+        type === 'all' ? 'All Content' : 
+        type === 'articles' ? 'Articles Only' : 'Videos Only';
+    fetchContent();
+    toggleDropdown('contentTypeDropdown');
+}
+
+function filterCategory(category) {
+    currentFilters.category = category;
+    currentFilters.page = 1;
+    document.getElementById('selectedCategory').textContent = 
+        category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1);
+    fetchContent();
+    toggleDropdown('categoryDropdown');
+}
+
+let searchTimeout;
+function handleSearch(event) {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        currentFilters.search = event.target.value;
+        currentFilters.page = 1;
+        fetchContent();
+    }, 300);
+}
+
+function changePage(direction) {
+    if (direction === 'prev' && currentFilters.page > 1) {
+        currentFilters.page--;
+    } else if (direction === 'next' && currentFilters.page < totalPages) {
+        currentFilters.page++;
+    }
+    fetchContent();
+}
+
+async function fetchContent() {
+    const contentGrid = document.getElementById('contentGrid');
+    // Show loading state
+    contentGrid.innerHTML = `
+        <div class="col-span-full text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p class="text-gray-500 mt-4">Loading content...</p>
+        </div>
+    `;
+
+    try {
+        const queryParams = new URLSearchParams({
+            content_type: currentFilters.contentType,
+            category: currentFilters.category,
+            search: currentFilters.search,
+            page: currentFilters.page
+        });
+
+        const response = await fetch(`/api/v1/reader?${queryParams}`);
+        const data = await response.json();
+
+        if (response.ok) {
+            // Update pagination info
+            totalPages = data.total_pages;
+            document.querySelector('nav span').textContent = 
+                `Page ${currentFilters.page} of ${totalPages}`;
+
+            // Update content grid
+            contentGrid.innerHTML = data.items.map(item => `
+                ${item.api_source === 'youtube' ? renderVideoCard(item) : renderArticleCard(item)}
+            `).join('');
+        } else {
+            throw new Error(data.detail || 'Error fetching content');
+        }
+    } catch (error) {
+        contentGrid.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <svg class="h-12 w-12 text-red-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="text-xl text-gray-600 mt-4">Error loading content</h3>
+                <p class="text-gray-500 mt-2">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+function renderVideoCard(video) {
+    return `
+        <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+            <div class="relative">
+                <img src="${video.metadata.thumbnail}" 
+                     alt="${video.title}"
+                     class="w-full h-48 object-cover">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <button onclick="window.open('${video.url}', '_blank')"
+                            class="bg-red-600 text-white rounded-lg px-4 py-2 opacity-90 hover:opacity-100 flex items-center gap-2">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 0C4.477 0 0 4.477 0 10c0 5.522 4.477 10 10 10s10-4.478 10-10c0-5.523-4.477-10-10-10zm3.71 10.71l-5 5a1 1 0 01-1.42-1.42L11.58 10 7.3 5.71a1 1 0 111.42-1.42l5 5a1 1 0 010 1.42z"/>
+                        </svg>
+                        Watch Video
+                    </button>
+                </div>
+                <div class="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
+                    ${video.metadata.duration || ''}
+                </div>
+            </div>
+            <div class="p-4">
+                <h3 class="text-lg font-semibold text-gray-900">${video.title}</h3>
+                <p class="text-gray-500 text-sm mt-2">${video.content.substring(0, 150)}...</p>
+                <div class="flex justify-between items-center mt-4">
+                    <span class="text-sm text-gray-500">${video.source}</span>
+                    <span class="text-sm text-gray-500">${formatDate(video.published_date)}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderArticleCard(article) {
+    return `
+        <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900">${article.title}</h3>
+                <p class="text-gray-600 mt-2">${article.content.substring(0, 200)}...</p>
+                <div class="flex justify-between items-center mt-4">
+                    <a href="${article.url}" 
+                       class="text-blue-500 hover:text-blue-700 font-medium"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        Read more →
+                    </a>
+                    <span class="text-sm text-gray-500">${formatDate(article.published_date)}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+// Handle clicks outside dropdowns
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('[id$="Btn"]')) {
+        document.querySelectorAll('[id$="Dropdown"]').forEach(dropdown => {
+            dropdown.classList.add('hidden');
+        });
+    }
+});
+
+// Initial content load
+fetchContent();

@@ -1,12 +1,28 @@
-from fastapi import FastAPI, Request, BackgroundTasks
+# At the top of main.py, add/update these imports
+from fastapi import BackgroundTasks
+from app.core.middleware import RateLimitMiddleware
+from app.core.background_tasks import background_task_manager
+from fastapi import FastAPI, Request, Depends, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import auth, articles
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
+from typing import List
+import math
+
+# Import your models and schemas
+from app.models.user import User
+from app.models.feed import Feed
+from app.models.article import Article
+from app.core.deps import get_current_user
+from app.db.base import get_db
+from app.api.v1.endpoints import auth, articles, admin, feed
+
+# Import your routers
 from app.api.v1.endpoints import auth, articles, admin
 from app.api.v1.endpoints import feed
-from app.core.middleware import RateLimitMiddleware
-from app.core.background_tasks import background_task_manager
+
 
 app = FastAPI(
     title="Development News API",
@@ -64,3 +80,138 @@ async def startup_event():
     """Start background tasks when the application starts."""
     background_tasks = BackgroundTasks()
     await background_task_manager.start_feed_refresh_task(background_tasks)
+
+@app.get("/feeds")
+async def feeds_view(
+    request: Request, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Feed management dashboard view."""
+    feeds = db.query(Feed).filter(Feed.user_id == current_user.id).all()
+    return templates.TemplateResponse(
+        "feeds.html",
+        {
+            "request": request,
+            "feeds": feeds
+        }
+    )
+
+@app.get("/reader")
+async def reader_view(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    content_type: str = Query('all', regex='^(all|videos|articles)$'),
+    category: str = Query('all'),
+    search: str = Query(''),
+    items_per_page: int = 12
+):
+    """Content reader view with support for articles and videos."""
+    # Get user's feeds
+    user_feeds = db.query(Feed).filter(Feed.user_id == current_user.id).all()
+    feed_ids = [feed.id for feed in user_feeds]
+    
+    # Build content query
+    query = db.query(Article).filter(Article.feed_id.in_(feed_ids))
+    
+    # Apply filters
+    if content_type == 'videos':
+        query = query.filter(Article.api_source == 'youtube')
+    elif content_type == 'articles':
+        query = query.filter(Article.api_source != 'youtube')
+    
+    if category != 'all':
+        query = query.filter(Article.category == category)
+    
+    if search:
+        search_filter = or_(
+            Article.title.ilike(f"%{search}%"),
+            Article.content.ilike(f"%{search}%")
+        )
+        query = query.filter(search_filter)
+    
+    # Get total count for pagination
+    total_items = query.count()
+    total_pages = math.ceil(total_items / items_per_page)
+    
+    # Apply pagination
+    offset = (page - 1) * items_per_page
+    query = query.order_by(Article.published_date.desc())
+    items = query.offset(offset).limit(items_per_page).all()
+    
+    # Get unique categories for filter dropdown
+    categories = (
+        db.query(Article.category)
+        .filter(Article.feed_id.in_(feed_ids))
+        .distinct()
+        .filter(Article.category.isnot(None))
+        .all()
+    )
+    categories = [cat[0] for cat in categories]  # Extract category names
+    
+    return templates.TemplateResponse(
+        "reader.html",
+        {
+            "request": request,
+            "items": items,
+            "categories": categories,
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_items": total_items,
+            "content_type": content_type,
+            "current_category": category,
+            "search_query": search
+        }
+    )
+
+@app.get("/api/v1/reader")
+async def reader_api(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    content_type: str = Query('all', regex='^(all|videos|articles)$'),
+    category: str = Query('all'),
+    search: str = Query(''),
+    items_per_page: int = 12
+):
+    """API endpoint for fetching reader content with filters."""
+    # Get user's feeds
+    user_feeds = db.query(Feed).filter(Feed.user_id == current_user.id).all()
+    feed_ids = [feed.id for feed in user_feeds]
+    
+    # Build content query
+    query = db.query(Article).filter(Article.feed_id.in_(feed_ids))
+    
+    # Apply filters
+    if content_type == 'videos':
+        query = query.filter(Article.api_source == 'youtube')
+    elif content_type == 'articles':
+        query = query.filter(Article.api_source != 'youtube')
+    
+    if category != 'all':
+        query = query.filter(Article.category == category)
+    
+    if search:
+        search_filter = or_(
+            Article.title.ilike(f"%{search}%"),
+            Article.content.ilike(f"%{search}%")
+        )
+        query = query.filter(search_filter)
+    
+    # Get total count for pagination
+    total_items = query.count()
+    total_pages = math.ceil(total_items / items_per_page)
+    
+    # Apply pagination
+    offset = (page - 1) * items_per_page
+    query = query.order_by(Article.published_date.desc())
+    items = query.offset(offset).limit(items_per_page).all()
+    
+    return {
+        "items": [item.dict() for item in items],
+        "total_items": total_items,
+        "total_pages": total_pages,
+        "current_page": page
+    }
