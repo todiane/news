@@ -1,0 +1,78 @@
+<!-- templates/components/feed_form.html -->
+{% macro feed_form(feed=None) %}
+<form id="feedForm" class="space-y-4">
+    <!-- Error Alert -->
+    <div id="errorAlert" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <span id="errorMessage" class="block sm:inline"></span>
+    </div>
+
+    <!-- Feed Name -->
+    <div>
+        <label for="feedName" class="block text-sm font-medium text-gray-700">Feed Name</label>
+        <input type="text" 
+               id="feedName" 
+               name="name" 
+               value="{{ feed.name if feed else '' }}"
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+               placeholder="Enter feed name"
+               required>
+    </div>
+
+    <!-- Feed URL -->
+    <div>
+        <label for="feedUrl" class="block text-sm font-medium text-gray-700">Feed URL</label>
+        <input type="url" 
+               id="feedUrl" 
+               name="url" 
+               value="{{ feed.url if feed else '' }}"
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+               placeholder="https://example.com/feed.xml"
+               required>
+    </div>
+
+    <!-- Category -->
+    <div>
+        <label for="feedCategory" class="block text-sm font-medium text-gray-700">Category</label>
+        <select id="feedCategory" 
+                name="category" 
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="tech" {% if feed and feed.category == 'tech' %}selected{% endif %}>Technology</option>
+            <option value="dev" {% if feed and feed.category == 'dev' %}selected{% endif %}>Development</option>
+            <option value="ai" {% if feed and feed.category == 'ai' %}selected{% endif %}>AI & ML</option>
+            <option value="cloud" {% if feed and feed.category == 'cloud' %}selected{% endif %}>Cloud Computing</option>
+            <option value="security" {% if feed and feed.category == 'security' %}selected{% endif %}>Security</option>
+            <option value="news" {% if feed and feed.category == 'news' %}selected{% endif %}>General News</option>
+        </select>
+    </div>
+
+    <!-- Feed Type -->
+    <div>
+        <label for="feedType" class="block text-sm font-medium text-gray-700">Feed Type</label>
+        <select id="feedType" 
+                name="feed_type" 
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="rss" {% if feed and feed.feed_type == 'rss' %}selected{% endif %}>RSS Feed</option>
+            <option value="youtube" {% if feed and feed.feed_type == 'youtube' %}selected{% endif %}>YouTube Channel</option>
+        </select>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="flex justify-end space-x-4 pt-4">
+        <button type="button" 
+                onclick="closeModal()"
+                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+            Cancel
+        </button>
+        <button type="submit"
+                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">
+            <span id="submitButtonText">{{ 'Update Feed' if feed else 'Add Feed' }}</span>
+            <span id="loadingSpinner" class="hidden">
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+            </span>
+        </button>
+    </div>
+</form>
+{% endmacro %}
