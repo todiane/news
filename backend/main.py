@@ -215,3 +215,68 @@ async def reader_api(
         "total_pages": total_pages,
         "current_page": page
     }
+@app.get("/login")
+async def login_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/login.html", 
+        {"request": request}
+    )
+
+@app.get("/register")
+async def register_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/register.html", 
+        {"request": request}
+    )
+
+@app.get("/verify-email")
+async def verify_email_page(request: Request):
+    token = request.query_params.get("token")
+    return templates.TemplateResponse(
+        "auth/verify-result.html",
+        {
+            "request": request,
+            "token": token
+        }
+    )
+
+@app.get("/auth/verify-email-sent")
+async def verify_email_sent_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/verify-email-sent.html", 
+        {"request": request}
+    )
+
+@app.get("/profile")
+async def profile_page(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    return templates.TemplateResponse(
+        "auth/profile.html",
+        {
+            "request": request,
+            "user": current_user,
+            "success": request.query_params.get("success"),
+            "error": request.query_params.get("error")
+        }
+    )
+
+@app.get("/forgot-password")
+async def forgot_password_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/password-reset.html", 
+        {"request": request}
+    )
+
+@app.get("/reset-password")
+async def reset_password_page(request: Request):
+    token = request.query_params.get("token")
+    return templates.TemplateResponse(
+        "auth/password-reset.html",
+        {
+            "request": request,
+            "token": token
+        }
+    )
+

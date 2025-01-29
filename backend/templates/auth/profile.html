@@ -1,0 +1,248 @@
+<!-- templates/auth/profile.html -->
+{% extends "base.html" %}
+
+{% block title %}Profile - News API{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <!-- Profile Header -->
+        <div class="bg-white shadow sm:rounded-lg mb-8">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">
+                            Profile Settings
+                        </h3>
+                        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                            Manage your account settings and preferences
+                        </p>
+                    </div>
+                    <div class="mt-3 sm:mt-0 sm:ml-4">
+                        <span class="inline-flex rounded-md shadow-sm">
+                            {% if user.is_verified %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                <svg class="-ml-1 mr-1.5 h-4 w-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
+                                Verified
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                <svg class="-ml-1 mr-1.5 h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                                Unverified
+                            </span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Form -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                {% if success %}
+                <div class="mb-4 bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded relative">
+                    <span class="block sm:inline">{{ success }}</span>
+                </div>
+                {% endif %}
+
+                {% if error %}
+                <div class="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative">
+                    <span class="block sm:inline">{{ error }}</span>
+                </div>
+                {% endif %}
+
+                <form action="/api/v1/auth/profile" method="POST" class="space-y-6">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">
+                            Email address
+                        </label>
+                        <div class="mt-1">
+                            <input type="email" name="email" id="email" value="{{ user.email }}"
+                                class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                disabled>
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Your email address cannot be changed
+                        </p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="border-t border-gray-200 pt-6">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">Change Password</h3>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Update your password to keep your account secure
+                            </p>
+                        </div>
+
+                        <div>
+                            <label for="current_password" class="block text-sm font-medium text-gray-700">
+                                Current Password
+                            </label>
+                            <div class="mt-1">
+                                <input type="password" name="current_password" id="current_password"
+                                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="new_password" class="block text-sm font-medium text-gray-700">
+                                New Password
+                            </label>
+                            <div class="mt-1">
+                                <input type="password" name="new_password" id="new_password"
+                                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="confirm_password" class="block text-sm font-medium text-gray-700">
+                                Confirm New Password
+                            </label>
+                            <div class="mt-1">
+                                <input type="password" name="confirm_password" id="confirm_password"
+                                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-6">
+                        <div class="flex justify-end">
+                            <button type="submit"
+                                class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Update Profile
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Delete Account Section -->
+                <div class="mt-10 border-t border-gray-200 pt-6">
+                    <div class="rounded-md bg-red-50 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">
+                                    Delete Account
+                                </h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <p>
+                                        Once you delete your account, there is no going back. Please be certain.
+                                    </p>
+                                </div>
+                                <div class="mt-4">
+                                    <button type="button" id="deleteAccount"
+                                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                        Delete your account
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    // Validate passwords match
+    if (formData.get('new_password') !== formData.get('confirm_password')) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative';
+        errorDiv.textContent = 'New passwords do not match';
+        
+        const existingError = document.querySelector('[role="alert"]');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        const form = document.querySelector('form');
+        form.insertAdjacentElement('beforebegin', errorDiv);
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/v1/auth/profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                current_password: formData.get('current_password'),
+                new_password: formData.get('new_password')
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || 'Failed to update profile');
+        }
+
+        // Show success message
+        const successDiv = document.createElement('div');
+        successDiv.className = 'mb-4 bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded relative';
+        successDiv.textContent = 'Profile updated successfully';
+        
+        const form = document.querySelector('form');
+        form.insertAdjacentElement('beforebegin', successDiv);
+        form.reset();
+    } catch (error) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative';
+        errorDiv.textContent = error.message;
+        
+        const existingError = document.querySelector('[role="alert"]');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        const form = document.querySelector('form');
+        form.insertAdjacentElement('beforebegin', errorDiv);
+    }
+});
+
+document.getElementById('deleteAccount').addEventListener('click', async () => {
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/v1/auth/delete-account', {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.detail || 'Failed to delete account');
+        }
+
+        // Clear local storage and redirect to home
+        localStorage.removeItem('token');
+        window.location.href = '/';
+    } catch (error) {
+        alert(error.message);
+    }
+});
+</script>
+{% endblock %}

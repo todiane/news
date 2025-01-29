@@ -5,7 +5,6 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from jose import jwt
 from app.core.config import settings
-import secrets
 
 class EmailManager:
     def __init__(self):
@@ -17,7 +16,9 @@ class EmailManager:
             MAIL_SERVER=settings.MAIL_SERVER,
             MAIL_SSL_TLS=True,
             USE_CREDENTIALS=True,
-            TEMPLATE_FOLDER=Path(__file__).parent.parent / 'templates' / 'email'
+            TEMPLATE_FOLDER=Path(__file__).parent.parent / 'templates' / 'email',
+            VALIDATE_CERTS=True,
+            MAIL_STARTTLS=False
         )
         self.fastmail = FastMail(self.conf)
 
@@ -105,4 +106,5 @@ class EmailManager:
         except jwt.JWTError:
             return None
 
+# Create an instance of EmailManager
 email_manager = EmailManager()
