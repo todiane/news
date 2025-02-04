@@ -8,6 +8,8 @@ from app.db.base import get_db
 from app.core.deps import get_current_user
 from app.core.versioning import version_config, APIVersion, VersionedResponse
 from app.core.error_handler import ErrorDetail
+from fastapi.responses import Response
+from app.core.feed_generator import RSSFeedGenerator
 import logging
 
 logger = logging.getLogger(__name__)
@@ -164,3 +166,35 @@ async def delete_article(
                 details={"id": article_id} if version_config.is_supported(api_version) else None
             ).dict()
         )
+    
+@router.get("/feed.rss")
+async def get_rss_feed(
+    db: Session = Depends(get_db),
+    limit: int = 50
+):
+    """Generate RSS feed of latest articles."""
+    articles = article.get_multi(db, limit=limit)
+    
+    feed_gen = RSSFeedGenerator()
+    feed_gen.add_articles(articles)
+    
+    return Response(
+        content=feed_gen.get_rss(),
+        media_type="application/rss+xml"
+    )
+
+@router.get("/feed.atom")
+async def get_atom_feed(
+    db: Session = Depends(get_db),
+    limit: int = 50
+):
+    """Generate Atom feed of latest articles."""
+    articles = article.get_multi(db, limit=limit)
+    
+    feed_gen = RSSFeedGenerator()
+    feed_gen.add_articles(articles)
+    
+    return Response(
+        content=feed_gen.get_atom(),
+        media_type="application/atom+xml"
+    )

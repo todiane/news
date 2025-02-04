@@ -7,6 +7,24 @@
     <link href="{{ url_for('static', path='/css/main.css') }}" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="{{ url_for('static', path='js/subscription-management.js') }}"></script>
+
+    {% block head %}
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="{{ request.url }}">
+        <meta property="og:title" content="{{ article.title if article else 'News API' }}">
+        <meta property="og:description" content="{{ article.content[:200] if article else 'Latest news and articles' }}">
+        
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="{{ request.url }}">
+        <meta property="twitter:title" content="{{ article.title if article else 'News API' }}">
+        <meta property="twitter:description" content="{{ article.content[:200] if article else 'Latest news and articles' }}">
+
+        <!-- RSS Feed Links -->
+        <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/api/v1/articles/feed.rss">
+        <link rel="alternate" type="application/atom+xml" title="Atom Feed" href="/api/v1/articles/feed.atom">
+    {% endblock %}
 </head>
 <body class="bg-gray-100 min-h-screen">
     {% include 'components/nav.html' %}

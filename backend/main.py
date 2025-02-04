@@ -33,6 +33,8 @@ from app.db.base import get_db
 
 # Import routers
 from app.api.v1.endpoints import auth, articles, admin, feed
+from app.api.v1.api import api_router
+
 
 # Create instances
 notification_manager = NotificationManager()
@@ -128,10 +130,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # Include API routers
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
-app.include_router(articles.router, prefix="/api/v1", tags=["articles"])
-app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
-app.include_router(feed.router, prefix="/api/v1/feed", tags=["feed"])
+app.include_router(api_router, prefix="/api/v1")
 
 # Startup Event
 @app.on_event("startup")

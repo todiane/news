@@ -2,6 +2,7 @@ aiohttp==3.9.3
 email-validator==2.1.0
 fastapi==0.109.0
 fastapi-mail==1.4.1
+feedgen==0.9.0
 feedparser==6.0.10
 uvicorn==0.27.0
 sqlalchemy==2.0.25
