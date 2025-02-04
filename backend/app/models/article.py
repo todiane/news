@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
 from datetime import datetime
+from sqlalchemy.orm import relationship
 from app.db.base import Base
 
 class Article(Base):
@@ -18,3 +19,4 @@ class Article(Base):
     published_date = Column(DateTime, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    read_history = relationship("FeedHistory", back_populates="article")

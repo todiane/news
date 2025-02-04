@@ -20,4 +20,5 @@ class Feed(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     user_preferences = relationship("FeedPreference", back_populates="feed")
+    read_history = relationship("FeedHistory", back_populates="feed")
     

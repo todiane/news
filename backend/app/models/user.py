@@ -18,6 +18,7 @@ class User(Base):
     password_reset_at = Column(DateTime, nullable=True)
     last_login = Column(DateTime, nullable=True)
     feeds = relationship("Feed", back_populates="user")
+    feed_history = relationship("FeedHistory", back_populates="user")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     feed_preferences = relationship("FeedPreference", back_populates="user")

@@ -16,6 +16,7 @@ from datetime import datetime
 # Import middleware and background tasks
 from app.core.middleware import RateLimitMiddleware
 from app.core.background_tasks import background_task_manager, BackgroundTasks
+
 from app.core.notification_manager import NotificationManager
 from app.core.feed_fetcher import FeedFetcher
 
@@ -138,11 +139,23 @@ async def startup_event():
     """Start background tasks when the application starts."""
     try:
         background_tasks = BackgroundTasks()
-        await background_task_manager.start_feed_refresh_task(background_tasks)
+        await background_task_manager.start(background_tasks)
         logger.info("Background tasks started successfully")
     except Exception as e:
         logger.error(f"Error starting background tasks: {e}")
         raise
+
+
+# Shutdown Event
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Stop background tasks when the application shuts down."""
+    try:
+        await background_task_manager.stop()
+        logger.info("Background tasks stopped successfully")
+    except Exception as e:
+        logger.error(f"Error stopping background tasks: {e}")
+
 
 # Health Check
 @app.get("/health")
