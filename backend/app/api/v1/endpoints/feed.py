@@ -1,268 +1,363 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from datetime import datetime
+
 from app.db.base import get_db
+from app.core.deps import get_current_user
+from app.core.feed_validator import feed_validator
+from app.models.user import User
 from app.models.feed import Feed
 from app.schemas.feed import FeedCreate, FeedUpdate, Feed as FeedSchema
-from app.schemas.article import Article
-from app.core.deps import get_current_user
-from app.models.user import User
-from app.core.feed_fetcher import fetch_all_feeds
-from app.crud.article import article as article_crud
-from app.core.cache_manager import CacheWarmer
 from app.core.cache import CacheManager
-from app.core.versioning import version_config, APIVersion, VersionedResponse
-from app.core.error_handler import ErrorDetail
 import logging
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
-class FeedResponse(VersionedResponse):
-    data: List[FeedSchema]
-    total: int = 0
-
-class FeedDetailResponse(VersionedResponse):
-    data: FeedSchema
-
-@router.post("/", response_model=FeedDetailResponse)
+@router.post("/feeds", response_model=FeedSchema)
 async def create_feed(
     feed_in: FeedCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    api_version: str = Depends(version_config.verify_version)
+    current_user: User = Depends(get_current_user)
 ):
-    """
-    Create a new feed.
-    
-    Version changes:
-    - 1.0: Base implementation
-    - 1.1: Added automatic feed validation
-    - 2.0: Added feed categorization
-    """
-    try:
-        feed = Feed(
-            **feed_in.dict(),
-            user_id=current_user.id
-        )
-        db.add(feed)
-        db.commit()
-        db.refresh(feed)
+    """Create a new feed with validation."""
+    async with feed_validator as validator:
+        # Validate the feed URL
+        is_valid, validation_result = await validator.validate_feed(feed_in.url)
         
-        return FeedDetailResponse(
-            version=api_version,
-            data=feed
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "message": "Invalid feed",
+                    "validation_errors": validation_result
+                }
+            )
+        
+        # Create feed with validated metadata
+        feed = Feed(
+            name=feed_in.name or validation_result["metadata"]["title"],
+            url=feed_in.url,
+            feed_type=validation_result["format"],
+            category=feed_in.category,
+            user_id=current_user.id,
+            last_fetched=datetime.utcnow(),
+            extra_data=validation_result["metadata"]
         )
-    except Exception as e:
-        logger.error(f"Error creating feed: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=ErrorDetail(
-                code="FEED_CREATE_ERROR",
-                message="Failed to create feed",
-                details={"error": str(e)} if version_config.is_supported(api_version) else None
-            ).dict()
-        )
+        
+        try:
+            db.add(feed)
+            db.commit()
+            db.refresh(feed)
+            return feed
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error creating feed: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error creating feed"
+            )
 
-@router.get("/my-feeds", response_model=FeedResponse)
-async def get_my_feeds(
+@router.get("/feeds", response_model=List[FeedSchema])
+async def get_feeds(
+    skip: int = 0,
+    limit: int = 100,
+    category: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    api_version: str = Depends(version_config.verify_version)
+    current_user: User = Depends(get_current_user)
 ):
-    """Get all feeds for the current user."""
-    try:
-        feeds = db.query(Feed).filter(Feed.user_id == current_user.id).all()
-        return FeedResponse(
-            version=api_version,
-            data=feeds,
-            total=len(feeds)
-        )
-    except Exception as e:
-        logger.error(f"Error retrieving feeds: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=ErrorDetail(
-                code="FEED_FETCH_ERROR",
-                message="Failed to retrieve feeds",
-                details={"error": str(e)} if version_config.is_supported(api_version) else None
-            ).dict()
-        )
+    """Get user's feeds with optional category filter."""
+    query = db.query(Feed).filter(Feed.user_id == current_user.id)
+    
+    if category:
+        query = query.filter(Feed.category == category)
+    
+    feeds = query.offset(skip).limit(limit).all()
+    return feeds
 
-@router.put("/{feed_id}", response_model=FeedDetailResponse)
+@router.get("/feeds/{feed_id}", response_model=FeedSchema)
+async def get_feed(
+    feed_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific feed."""
+    feed = db.query(Feed).filter(
+        Feed.id == feed_id,
+        Feed.user_id == current_user.id
+    ).first()
+    
+    if not feed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feed not found"
+        )
+    return feed
+
+@router.put("/feeds/{feed_id}", response_model=FeedSchema)
 async def update_feed(
     feed_id: int,
     feed_in: FeedUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    api_version: str = Depends(version_config.verify_version)
+    current_user: User = Depends(get_current_user)
 ):
-    """Update an existing feed."""
-    try:
-        feed = db.query(Feed).filter(
-            Feed.id == feed_id,
-            Feed.user_id == current_user.id
-        ).first()
-        
-        if not feed:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=ErrorDetail(
-                    code="FEED_NOT_FOUND",
-                    message="Feed not found",
-                    details={"id": feed_id} if version_config.is_supported(api_version) else None
-                ).dict()
-            )
-        
-        for field, value in feed_in.dict(exclude_unset=True).items():
-            setattr(feed, field, value)
-        
-        db.add(feed)
-        db.commit()
-        db.refresh(feed)
-        
-        return FeedDetailResponse(
-            version=api_version,
-            data=feed
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error updating feed {feed_id}: {str(e)}")
+    """Update a feed with validation if URL changes."""
+    feed = db.query(Feed).filter(
+        Feed.id == feed_id,
+        Feed.user_id == current_user.id
+    ).first()
+    
+    if not feed:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=ErrorDetail(
-                code="FEED_UPDATE_ERROR",
-                message="Failed to update feed",
-                details={"id": feed_id} if version_config.is_supported(api_version) else None
-            ).dict()
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feed not found"
         )
 
-@router.delete("/{feed_id}")
+    # If URL is being updated, validate the new URL
+    if feed_in.url and feed_in.url != feed.url:
+        async with feed_validator as validator:
+            is_valid, validation_result = await validator.validate_feed(feed_in.url)
+            
+            if not is_valid:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "message": "Invalid feed URL",
+                        "validation_errors": validation_result
+                    }
+                )
+            
+            feed.url = feed_in.url
+            feed.feed_type = validation_result["format"]
+            feed.extra_data = validation_result["metadata"]
+
+    # Update other fields
+    if feed_in.name:
+        feed.name = feed_in.name
+    if feed_in.category:
+        feed.category = feed_in.category
+
+    try:
+        db.commit()
+        db.refresh(feed)
+        return feed
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating feed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error updating feed"
+        )
+
+@router.delete("/feeds/{feed_id}")
 async def delete_feed(
     feed_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    api_version: str = Depends(version_config.verify_version)
+    current_user: User = Depends(get_current_user)
 ):
     """Delete a feed."""
+    feed = db.query(Feed).filter(
+        Feed.id == feed_id,
+        Feed.user_id == current_user.id
+    ).first()
+    
+    if not feed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feed not found"
+        )
+
     try:
-        feed = db.query(Feed).filter(
-            Feed.id == feed_id,
-            Feed.user_id == current_user.id
-        ).first()
-        
-        if not feed:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=ErrorDetail(
-                    code="FEED_NOT_FOUND",
-                    message="Feed not found",
-                    details={"id": feed_id} if version_config.is_supported(api_version) else None
-                ).dict()
-            )
-        
         db.delete(feed)
         db.commit()
         
-        return {
-            "version": api_version,
-            "message": "Feed deleted successfully",
-            "id": feed_id
-        }
+        # Clear any cached data for this feed
+        cache = CacheManager()
+        cache.invalidate(f"feed_{feed_id}")
+        
+        return {"message": "Feed deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting feed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error deleting feed"
+        )
+
+@router.post("/feeds/discover")
+async def discover_feed(
+    website_url: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Discover RSS/Atom feed URL from a website URL."""
+    try:
+        async with feed_validator as validator:
+            feed_url = await validator.discover_feed_url(website_url)
+            
+            if not feed_url:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No feed found at the provided URL"
+                )
+            
+            # Validate discovered feed
+            is_valid, validation_result = await validator.validate_feed(feed_url)
+            
+            if not is_valid:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "message": "Discovered feed is invalid",
+                        "validation_errors": validation_result
+                    }
+                )
+            
+            return {
+                "feed_url": feed_url,
+                "metadata": validation_result["metadata"],
+                "format": validation_result["format"]
+            }
+            
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting feed {feed_id}: {str(e)}")
+        logger.error(f"Error discovering feed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=ErrorDetail(
-                code="FEED_DELETE_ERROR",
-                message="Failed to delete feed",
-                details={"id": feed_id} if version_config.is_supported(api_version) else None
-            ).dict()
+            detail="Error discovering feed"
         )
 
-@router.get("/refresh", response_model=List[Article])
-async def refresh_feeds(
+@router.post("/feeds/validate")
+async def validate_feed_url(
+    url: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    api_version: str = Depends(version_config.verify_version)
+    current_user: User = Depends(get_current_user)
 ):
-    """Refresh and return articles from all feeds for the current user."""
+    """Validate a feed URL before adding it."""
     try:
-        user_feeds = db.query(Feed).filter(Feed.user_id == current_user.id).all()
-        feed_urls = [feed.url for feed in user_feeds]
-        
-        if not feed_urls:
-            return []
-        
-        articles = await fetch_all_feeds(feed_urls)
-        
-        # Save new articles
-        saved_articles = []
-        for article_data in articles:
-            existing = article_crud.get_by_url(db, url=article_data["url"])
-            if not existing:
-                new_article = article_crud.create(db, obj_in=article_data)
-                saved_articles.append(new_article)
-        
-        return saved_articles
+        async with feed_validator as validator:
+            is_valid, validation_result = await validator.validate_feed(url)
+            
+            if not is_valid:
+                return {
+                    "is_valid": False,
+                    "errors": validation_result
+                }
+            
+            return {
+                "is_valid": True,
+                "metadata": validation_result["metadata"],
+                "format": validation_result["format"],
+                "stats": validation_result["stats"]
+            }
+            
     except Exception as e:
-        logger.error(f"Error refreshing feeds: {str(e)}")
+        logger.error(f"Error validating feed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=ErrorDetail(
-                code="FEED_REFRESH_ERROR",
-                message="Failed to refresh feeds",
-                details={"error": str(e)} if version_config.is_supported(api_version) else None
-            ).dict()
+            detail="Error validating feed"
         )
 
-@router.post("/cache/warm/{feed_id}")
-async def warm_feed_cache(
+@router.post("/feeds/{feed_id}/refresh")
+async def refresh_feed(
     feed_id: int,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    api_version: str = Depends(version_config.verify_version)
+    current_user: User = Depends(get_current_user)
 ):
-    """Manually trigger cache warming for a specific feed."""
+    """Manually refresh a feed."""
+    feed = db.query(Feed).filter(
+        Feed.id == feed_id,
+        Feed.user_id == current_user.id
+    ).first()
+    
+    if not feed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feed not found"
+        )
+
     try:
-        feed = db.query(Feed).filter(
-            Feed.id == feed_id,
-            Feed.user_id == current_user.id
-        ).first()
-        
-        if not feed:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=ErrorDetail(
-                    code="FEED_NOT_FOUND",
-                    message="Feed not found",
-                    details={"id": feed_id} if version_config.is_supported(api_version) else None
-                ).dict()
-            )
-        
-        cache_warmer = CacheWarmer(db)
-        await cache_warmer.start_warming(background_tasks)
-        
-        return {
-            "version": api_version,
-            "message": "Cache warming started",
-            "feed_id": feed_id
-        }
+        async with feed_validator as validator:
+            is_valid, validation_result = await validator.validate_feed(feed.url)
+            
+            if not is_valid:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "message": "Feed has become invalid",
+                        "validation_errors": validation_result
+                    }
+                )
+            
+            # Update feed metadata
+            feed.last_fetched = datetime.utcnow()
+            feed.extra_data = validation_result["metadata"]
+            
+            db.commit()
+            db.refresh(feed)
+            
+            # Clear cache for this feed
+            cache = CacheManager()
+            cache.invalidate(f"feed_{feed_id}")
+            
+            return {
+                "message": "Feed refreshed successfully",
+                "metadata": validation_result["metadata"],
+                "stats": validation_result["stats"]
+            }
+            
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error warming cache for feed {feed_id}: {str(e)}")
+        db.rollback()
+        logger.error(f"Error refreshing feed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=ErrorDetail(
-                code="CACHE_WARM_ERROR",
-                message="Failed to warm cache",
-                details={"id": feed_id} if version_config.is_supported(api_version) else None
-            ).dict()
+            detail="Error refreshing feed"
         )
-    
+
+@router.get("/feeds/stats")
+async def get_feed_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get statistics about user's feeds."""
+    try:
+        feeds = db.query(Feed).filter(Feed.user_id == current_user.id).all()
+        
+        total_feeds = len(feeds)
+        feeds_by_category = {}
+        feeds_by_type = {}
+        total_inactive = 0
+        
+        for feed in feeds:
+            # Count by category
+            category = feed.category or "uncategorized"
+            feeds_by_category[category] = feeds_by_category.get(category, 0) + 1
+            
+            # Count by feed type
+            feed_type = feed.feed_type or "unknown"
+            feeds_by_type[feed_type] = feeds_by_type.get(feed_type, 0) + 1
+            
+            # Check activity
+            if feed.last_fetched:
+                time_diff = datetime.utcnow() - feed.last_fetched
+                if time_diff.days > 7:  # Consider inactive if not fetched in 7 days
+                    total_inactive += 1
+        
+        return {
+            "total_feeds": total_feeds,
+            "feeds_by_category": feeds_by_category,
+            "feeds_by_type": feeds_by_type,
+            "total_inactive": total_inactive,
+            "active_feeds": total_feeds - total_inactive
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting feed stats: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error retrieving feed statistics"
+        )

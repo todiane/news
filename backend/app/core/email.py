@@ -14,11 +14,12 @@ class EmailManager:
             MAIL_FROM=settings.MAIL_FROM,
             MAIL_PORT=settings.MAIL_PORT,
             MAIL_SERVER=settings.MAIL_SERVER,
-            MAIL_SSL_TLS=True,
+            MAIL_SSL_TLS=True,  # Keep only one SSL/TLS setting
+            MAIL_STARTTLS=getattr(settings, "MAIL_STARTTLS", False),
+            MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
             USE_CREDENTIALS=True,
             TEMPLATE_FOLDER=Path(__file__).parent.parent / 'templates' / 'email',
             VALIDATE_CERTS=True,
-            MAIL_STARTTLS=False
         )
         self.fastmail = FastMail(self.conf)
 

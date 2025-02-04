@@ -1,6 +1,5 @@
 # backend/main.py
-
-from fastapi import FastAPI, Request, Depends, Query, HTTPException, status
+from fastapi import FastAPI, BackgroundTasks, Request, Depends, Query, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -17,6 +16,8 @@ from datetime import datetime
 # Import middleware and background tasks
 from app.core.middleware import RateLimitMiddleware
 from app.core.background_tasks import background_task_manager, BackgroundTasks
+from app.core.notification_manager import NotificationManager
+from app.core.feed_fetcher import FeedFetcher
 
 # Import error handling and versioning
 from app.core.error_handler import error_handler, ErrorDetail
@@ -31,6 +32,10 @@ from app.db.base import get_db
 
 # Import routers
 from app.api.v1.endpoints import auth, articles, admin, feed
+
+# Create instances
+notification_manager = NotificationManager()
+feed_fetcher = FeedFetcher()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -149,7 +154,7 @@ async def health_check():
         "timestamp": datetime.utcnow().isoformat()
     }
 
-# Keep existing route handlers
+# Frontend views
 @app.get("/")
 async def home(request: Request):
     return templates.TemplateResponse(
@@ -166,6 +171,7 @@ async def articles_view(request: Request):
             "articles": []
         }
     )
+
 
 @app.get("/feeds")
 async def feeds_view(
@@ -301,6 +307,35 @@ async def reader_api(
         "total_pages": total_pages,
         "current_page": page
     }
+
+@app.post("/api/v1/feeds/{feed_id}/refresh")
+async def refresh_feed(
+    feed_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    feed = db.query(Feed).filter(Feed.id == feed_id).first()
+    if not feed:
+        raise HTTPException(status_code=404, detail="Feed not found")
+
+    # Get new articles
+    new_articles = await feed_fetcher.fetch_feed(feed.url)
+    
+    if new_articles:
+        # Send notifications in background
+        background_tasks.add_task(
+            notification_manager.notify_feed_updates,
+            current_user,
+            feed_id,
+            new_articles
+        )
+    
+    return {"status": "success", "new_articles": len(new_articles)}
+
+
+
+
 @app.get("/login")
 async def login_page(request: Request):
     return templates.TemplateResponse(
@@ -363,6 +398,22 @@ async def reset_password_page(request: Request):
         {
             "request": request,
             "token": token
+        }
+    )
+
+
+@app.get("/subscriptions")
+async def subscriptions_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Subscription management page."""
+    return templates.TemplateResponse(
+        "feed/subscriptions.html",
+        {
+            "request": request,
+            "user": current_user
         }
     )
 

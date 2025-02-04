@@ -20,3 +20,4 @@ class User(Base):
     feeds = relationship("Feed", back_populates="user")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    feed_preferences = relationship("FeedPreference", back_populates="user")
