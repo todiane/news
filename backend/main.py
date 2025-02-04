@@ -1,45 +1,106 @@
-# At the top of main.py, add/update these imports
-from fastapi import BackgroundTasks
-from app.core.middleware import RateLimitMiddleware
-from app.core.background_tasks import background_task_manager
-from fastapi import FastAPI, Request, Depends, Query
+# backend/main.py
+
+from fastapi import FastAPI, Request, Depends, Query, HTTPException, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict, Any, Optional
 import math
+import logging
+from datetime import datetime
 
-# Import your models and schemas
+# Import middleware and background tasks
+from app.core.middleware import RateLimitMiddleware
+from app.core.background_tasks import background_task_manager, BackgroundTasks
+
+# Import error handling and versioning
+from app.core.error_handler import error_handler, ErrorDetail
+from app.core.versioning import version_config, APIVersion, VersionedResponse
+
+# Import models and schemas
 from app.models.user import User
 from app.models.feed import Feed
 from app.models.article import Article
 from app.core.deps import get_current_user
 from app.db.base import get_db
+
+# Import routers
 from app.api.v1.endpoints import auth, articles, admin, feed
 
-# Import your routers
-from app.api.v1.endpoints import auth, articles, admin
-from app.api.v1.endpoints import feed
-
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Development News API",
     description="API for fetching and managing development-focused news articles",
-    version="0.1.0"
+    version=APIVersion.V1,
+    docs_url="/api/v1/docs",
+    redoc_url="/api/v1/redoc"
 )
 
-# Add middleware
+# Exception Handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """Handle request validation errors."""
+    logger.error(f"Validation error: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=ErrorDetail(
+            code="VALIDATION_ERROR",
+            message="Invalid input data",
+            details={"errors": [{"loc": err["loc"], "msg": err["msg"]} for err in exc.errors()]}
+        ).dict()
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Handle HTTP exceptions."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorDetail(
+            code=f"HTTP_{exc.status_code}",
+            message=str(exc.detail),
+            details=getattr(exc, "details", None)
+        ).dict(),
+        headers=getattr(exc, "headers", None)
+    )
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
+    """Handle database errors."""
+    logger.error(f"Database error: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=ErrorDetail(
+            code="DATABASE_ERROR",
+            message="A database error occurred",
+            details={"error": str(exc)} if app.debug else None
+        ).dict()
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Handle all other exceptions."""
+    logger.error(f"Unexpected error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=ErrorDetail(
+            code="INTERNAL_ERROR",
+            message="An unexpected error occurred",
+            details={"error": str(exc)} if app.debug else None
+        ).dict()
+    )
+
+# Middleware
 app.add_middleware(RateLimitMiddleware)
 
-# Mount static directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Set up templates
-templates = Jinja2Templates(directory="templates")
-
-# Configure CORS
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Update this for production
@@ -48,12 +109,47 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Version header middleware
+@app.middleware("http")
+async def add_version_header(request: Request, call_next):
+    """Add API version header to all responses."""
+    response = await call_next(request)
+    response.headers["X-API-Version"] = APIVersion.V1
+    return response
+
+# Static files and templates
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
 # Include API routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(articles.router, prefix="/api/v1", tags=["articles"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(feed.router, prefix="/api/v1/feed", tags=["feed"])
 
+# Startup Event
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks when the application starts."""
+    try:
+        background_tasks = BackgroundTasks()
+        await background_task_manager.start_feed_refresh_task(background_tasks)
+        logger.info("Background tasks started successfully")
+    except Exception as e:
+        logger.error(f"Error starting background tasks: {e}")
+        raise
+
+# Health Check
+@app.get("/health")
+async def health_check():
+    """API health check endpoint."""
+    return {
+        "status": "healthy",
+        "version": APIVersion.V1,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+# Keep existing route handlers
 @app.get("/")
 async def home(request: Request):
     return templates.TemplateResponse(
@@ -70,16 +166,6 @@ async def articles_view(request: Request):
             "articles": []
         }
     )
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
-
-@app.on_event("startup")
-async def startup_event():
-    """Start background tasks when the application starts."""
-    background_tasks = BackgroundTasks()
-    await background_task_manager.start_feed_refresh_task(background_tasks)
 
 @app.get("/feeds")
 async def feeds_view(
