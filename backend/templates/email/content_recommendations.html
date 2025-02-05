@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Your Personalized Content Recommendations</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background-color: #9b59b6; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+            <h2 style="margin: 0;">Your Weekly Recommendations</h2>
+            <p style="margin: 10px 0 0;">Curated content based on your interests</p>
+        </div>
+
+        <div style="padding: 20px;">
+            {% for category, items in recommendations.items() %}
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #2c3e50; margin: 0 0 15px 0; padding-bottom: 5px; border-bottom: 2px solid #9b59b6;">
+                    {{ category }}
+                </h3>
+                
+                {% for item in items %}
+                <div style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 4px;">
+                    <h4 style="color: #2c3e50; margin: 0 0 10px 0;">{{ item.title }}</h4>
+                    <p style="color: #666; margin: 0 0 10px 0;">{{ item.summary }}</p>
+                    
+                    <div style="background-color: #fff; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                        <p style="color: #9b59b6; margin: 0; font-size: 14px;">
+                            <strong>Why we think you'll like this:</strong><br>
+                            {{ item.recommendation_reason }}
+                        </p>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <a href="{{ item.url }}" 
+                           style="color: #9b59b6; text-decoration: none; font-weight: bold;">
+                            Read More →
+                        </a>
+                        <span style="color: #666; font-size: 14px;">
+                            {{ item.source }} • {{ item.reading_time }} min read
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+            {% if trending_topics %}
+            <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 4px;">
+                <h4 style="color: #2c3e50; margin: 0 0 10px 0;">Trending Topics You Might Like</h4>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    {% for topic in trending_topics %}
+                    <a href="{{ topic.url }}"
+                       style="background-color: #9b59b6; color: white; text-decoration: none; padding: 5px 10px; border-radius: 15px; font-size: 14px;">
+                        {{ topic.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="padding: 20px; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
+            <p style="margin: 0; color: #666; font-size: 14px;">
+                These recommendations are based on your reading history and preferences.
+                <a href="{{ preference_url }}" style="color: #9b59b6; text-decoration: none;">Update your preferences</a> or 
+                <a href="{{ feedback_url }}" style="color: #9b59b6; text-decoration: none;">give us feedback</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>New Updates from Your Feeds</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background-color: #2c3e50; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+            <h2 style="margin: 0;">New Feed Updates</h2>
+            <p style="margin: 10px 0 0;">Updates from {{ feed_count }} feeds</p>
+        </div>
+
+        <div style="padding: 20px;">
+            {% for feed in feeds %}
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #2c3e50; margin: 0 0 10px 0;">{{ feed.name }}</h3>
+                {% for article in feed.articles %}
+                <div style="border-left: 4px solid #3498db; padding-left: 15px; margin-bottom: 15px;">
+                    <h4 style="margin: 0; color: #2c3e50;">{{ article.title }}</h4>
+                    <p style="margin: 5px 0; color: #666;">{{ article.summary[:200] }}...</p>
+                    <a href="{{ article.url }}" style="color: #3498db; text-decoration: none; display: inline-block; margin-top: 5px;">Read more →</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="padding: 20px; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
+            <p style="margin: 0; color: #666; font-size: 14px;">
+                You're receiving this because you subscribed to these feeds.
+                <a href="{{ unsubscribe_url }}" style="color: #3498db; text-decoration: none;">Update preferences</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Important Content Alert</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background-color: #e74c3c; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+            <h2 style="margin: 0;">Important Update</h2>
+            <p style="margin: 10px 0 0;">Matching your alert criteria: {{ alert_category }}</p>
+        </div>
+
+        <div style="padding: 20px;">
+            <div style="background-color: #f8f9fa; border-radius: 4px; padding: 15px; margin-bottom: 20px;">
+                <h3 style="color: #2c3e50; margin: 0 0 10px 0;">{{ content.title }}</h3>
+                <p style="color: #666; margin: 0 0 10px 0;">{{ content.summary }}</p>
+                <p style="color: #666; margin: 0 0 15px 0;">
+                    <strong>Source:</strong> {{ content.source }}<br>
+                    <strong>Published:</strong> {{ content.published_date }}
+                </p>
+                <a href="{{ content.url }}" 
+                   style="background-color: #e74c3c; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; display: inline-block;">
+                    Read Now
+                </a>
+            </div>
+
+            {% if similar_content %}
+            <div style="margin-top: 20px;">
+                <h4 style="color: #2c3e50; margin: 0 0 10px 0;">Related Content</h4>
+                {% for item in similar_content %}
+                <div style="margin-bottom: 10px;">
+                    <a href="{{ item.url }}" style="color: #3498db; text-decoration: none;">{{ item.title }}</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="padding: 20px; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
+            <p style="margin: 0; color: #666; font-size: 14px;">
+                You're receiving this alert based on your preferences.
+                <a href="{{ alert_settings_url }}" style="color: #3498db; text-decoration: none;">Manage alert settings</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
