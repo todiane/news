@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}News API{% endblock %}</title>
     <link href="{{ url_for('static', path='/css/main.css') }}" rel="stylesheet">
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="{{ url_for('static', path='js/subscription-management.js') }}"></script>
 
     {% block head %}
         <!-- Open Graph / Facebook -->
@@ -39,6 +37,14 @@
     </main>
 
     {% include 'components/footer.html' %}
-{% block scripts %}{% endblock %}
+
+    <!-- Core Dependencies -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Application Scripts -->
+    <script src="{{ url_for('static', path='js/subscription-management.js') }}"></script>
+    
+    <!-- Page Specific Scripts -->
+    {% block scripts %}{% endblock %}
 </body>
 </html>
