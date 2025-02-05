@@ -1,0 +1,151 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Edit User - {{ user.email }} - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+            <a href="/admin/users/{{ user.id }}" class="text-gray-500 hover:text-gray-700">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
+            <h1 class="text-2xl font-semibold text-gray-900">Edit User</h1>
+        </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">User Information</h3>
+        </div>
+
+        <form id="userEditForm" class="px-6 py-4 space-y-6" data-user-id="{{ user.id }}">
+            <!-- Error Alert -->
+            <div id="errorAlert" class="hidden bg-red-50 border-l-4 border-red-400 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p id="errorMessage" class="text-sm text-red-700"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Alert -->
+            <div id="successAlert" class="hidden bg-green-50 border-l-4 border-green-400 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-green-700">User updated successfully</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Field -->
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                <div class="mt-1">
+                    <input type="email" 
+                           name="email" 
+                           id="email" 
+                           value="{{ user.email }}"
+                           class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                           required>
+                </div>
+            </div>
+
+            <!-- Role Selection -->
+            <div>
+                <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
+                <div class="mt-1">
+                    <select id="role" 
+                            name="role" 
+                            class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        <option value="user" {% if not user.is_admin %}selected{% endif %}>User</option>
+                        <option value="admin" {% if user.is_admin %}selected{% endif %}>Admin</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Status Toggle -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Account Status</label>
+                <div class="mt-2">
+                    <div class="flex items-center">
+                        <button type="button" 
+                                id="statusToggle"
+                                class="relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
+                                {% if user.is_active %}bg-green-500{% else %}bg-gray-200{% endif %}"
+                                role="switch" 
+                                aria-checked="{{ user.is_active|lower }}">
+                            <span class="sr-only">Toggle account status</span>
+                            <span aria-hidden="true" 
+                                  class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition duration-200 ease-in-out
+                                  {% if user.is_active %}translate-x-5{% else %}translate-x-0{% endif %}">
+                            </span>
+                        </button>
+                        <span class="ml-3 text-sm text-gray-500" id="statusText">
+                            {{ 'Account Active' if user.is_active else 'Account Inactive' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reset Password Section -->
+            <div class="pt-6 border-t border-gray-200">
+                <h4 class="text-lg font-medium text-gray-900">Reset Password</h4>
+                <p class="mt-1 text-sm text-gray-500">Leave blank to keep the current password</p>
+                
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label for="newPassword" class="block text-sm font-medium text-gray-700">New Password</label>
+                        <div class="mt-1">
+                            <input type="password" 
+                                   name="newPassword" 
+                                   id="newPassword" 
+                                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                        <div class="mt-1">
+                            <input type="password" 
+                                   name="confirmPassword" 
+                                   id="confirmPassword" 
+                                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="pt-6 border-t border-gray-200">
+                <div class="flex justify-end space-x-3">
+                    <a href="/admin/users/{{ user.id }}" 
+                       class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+  <script src="{{ url_for('static', path='js/users/edit.js') }}"></script>
+{% endblock %}
