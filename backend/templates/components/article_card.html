@@ -9,13 +9,14 @@
              class="w-full h-48 object-cover">
         <div class="absolute inset-0 flex items-center justify-center">
             <a href="{{ item.url }}" 
-               class="bg-red-600 text-white rounded-lg px-4 py-2 opacity-90 hover:opacity-100 flex items-center gap-2"
-               target="_blank"
-               rel="noopener noreferrer">
-                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                class="bg-red-600 text-white rounded-lg px-4 py-2 opacity-90 hover:opacity-100 flex items-center gap-2"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Watch video: {{ item.title }}">
+                <svg class="h-5 w-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10 0C4.477 0 0 4.477 0 10c0 5.522 4.477 10 10 10s10-4.478 10-10c0-5.523-4.477-10-10-10zm3.71 10.71l-5 5a1 1 0 01-1.42-1.42L11.58 10 7.3 5.71a1 1 0 111.42-1.42l5 5a1 1 0 010 1.42z"/>
                 </svg>
-                Watch Video
+                    Watch Video
             </a>
         </div>
         {% if item.metadata.get('duration') %}
@@ -42,7 +43,7 @@
             <h3 class="text-xl font-semibold text-gray-900">{{ item.title }}</h3>
             {% if item.api_source == 'youtube' %}
             <span class="ml-2">
-                <svg class="h-6 w-6 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                <svg class="h-6 w-6 text-red-600"  aria-hidden="true"  fill="currentColor" viewBox="0 0 24 24">
                     <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                 </svg>
             </span>
@@ -68,9 +69,10 @@
         {% if not item.api_source == 'youtube' %}
         <div class="mt-4">
             <a href="{{ item.url }}" 
-               class="text-blue-500 hover:text-blue-700 font-medium"
-               target="_blank"
-               rel="noopener noreferrer">
+                class="text-blue-500 hover:text-blue-700 font-medium"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Read full article: {{ item.title }}">
                 Read more →
             </a>
         </div>

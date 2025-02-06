@@ -8,22 +8,20 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header Section -->
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900">Feed Management</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Feed Management</h1>
             <p class="text-gray-600 mt-2">Manage your news and content sources</p>
         </div>
         <button onclick="openModal('Add New Feed')" 
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
+                class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center sm:justify-start">
+            <svg class="h-5 w-5 mr-2"></svg>
             Add New Feed
         </button>
     </div>
 
     <!-- Feed List -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {% for feed in feeds %}
         <div class="bg-white rounded-lg shadow-md p-6">
             <div class="flex justify-between items-start mb-4">
@@ -108,9 +106,9 @@
         </div>
     </div>
 </div>
-{% block scripts %}
-<script src="{{ url_for('static', path='js/feed-validation.js') }}"></script>
-<script src="{{ url_for('static', path='js/feed-management.js') }}"></script>
-{% endblock %}
+    {% block scripts %}
+    <script src="{{ url_for('static', path='js/feed-validation.js') }}"></script>
+    <script src="{{ url_for('static', path='js/feed-management.js') }}"></script>
+    {% endblock %}
 {% endblock %}
 
