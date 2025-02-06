@@ -1,68 +1,103 @@
-# backend/tests/conftest.py
-
-import os
-import sys
 import pytest
+import asyncio
+from typing import Generator, AsyncGenerator
+from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from app.db.base import get_db
+from app.core.background_tasks import background_task_manager
+from app.core.cache import CacheManager
+from main import app
 
-# Fix path setup
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)  # Get backend directory
-sys.path.insert(0, backend_dir)  # Add backend to path
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
 
-# Import after path setup
-from app.db.base_class import Base
-from app.core.config import settings
-from app.core.security import create_access_token
-from app.models.user import User
-try:
-    from backend.main import app  # Try to import from backend main.py first
-except ImportError:
-    from main import app  # Fallback to app.main if needed
-
-# Test database URL
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+@pytest.fixture(scope="session")
+async def client() -> AsyncGenerator[TestClient, None]:
+    """Create a test client for integration tests."""
+    async with TestClient(app) as client:
+        yield client
 
 @pytest.fixture(scope="function")
-def db():
-    Base.metadata.create_all(bind=engine)
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(bind=engine)
+async def db_session() -> AsyncGenerator[Session, None]:
+    """Get a test database session."""
+    async with get_db() as session:
+        yield session
 
-@pytest.fixture(scope="function")
-def client(db: Session):
-    def override_get_db():
-        try:
-            yield db
-        finally:
-            db.close()
-    
-    app.dependency_overrides["get_db"] = override_get_db
-    with TestClient(app) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
+@pytest.fixture(autouse=True)
+async def clear_cache():
+    """Clear cache before each test."""
+    cache = CacheManager()
+    cache.clear()
+    yield
+    cache.clear()
+
+@pytest.fixture(autouse=True)
+async def stop_background_tasks():
+    """Stop background tasks after each test."""
+    yield
+    await background_task_manager.stop()
 
 @pytest.fixture
-def normal_user_token_headers(client: TestClient, db: Session):
-    """Return a valid token for normal user"""
-    user = User(
-        email="test@example.com",
-        hashed_password="testpass",
-        is_active=True
-    )
-    db.add(user)
-    db.commit()
+def mock_feed_fetcher(monkeypatch):
+    """Fixture to mock feed fetcher for integration tests."""
+    class MockFeedFetcher:
+        async def fetch_feed(self, url: str):
+            return []
+        
+        async def __aenter__(self):
+            return self
+            
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
     
-    access_token = create_access_token(user.id)
-    return {"Authorization": f"Bearer {access_token}"}
+    monkeypatch.setattr("app.core.feed_fetcher.FeedFetcher", MockFeedFetcher)
+    return MockFeedFetcher()
+
+@pytest.fixture
+def mock_notification_manager(monkeypatch):
+    """Fixture to mock notification manager for integration tests."""
+    class MockNotificationManager:
+        async def notify_feed_updates(self, *args, **kwargs):
+            pass
+    
+    monkeypatch.setattr("app.core.notification_manager.notification_manager", MockNotificationManager())
+    return MockNotificationManager()
+
+@pytest.fixture
+def mock_background_tasks(monkeypatch):
+    """Fixture to mock background tasks for integration tests."""
+    class MockBackgroundTasks:
+        async def start_feed_refresh_task(self, *args, **kwargs):
+            pass
+            
+        async def stop(self):
+            pass
+    
+    monkeypatch.setattr("app.core.background_tasks.background_task_manager", MockBackgroundTasks())
+    return MockBackgroundTasks()
+
+@pytest.fixture
+def mock_redis(monkeypatch):
+    """Fixture to mock Redis for integration tests."""
+    class MockRedis:
+        def __init__(self):
+            self.data = {}
+            
+        def get(self, key):
+            return self.data.get(key)
+            
+        def set(self, key, value, ex=None):
+            self.data[key] = value
+            
+        def delete(self, key):
+            self.data.pop(key, None)
+            
+        def flushdb(self):
+            self.data.clear()
+    
+    monkeypatch.setattr("redis.Redis", lambda *args, **kwargs: MockRedis())
+    return MockRedis()
