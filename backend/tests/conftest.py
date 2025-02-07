@@ -1,12 +1,22 @@
+import os
+import sys
+from pathlib import Path
 import pytest
 import asyncio
 from typing import Generator, AsyncGenerator
 from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
-from app.db.base import get_db
+
+# Add project root to Python path BEFORE any app imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = str(Path(current_dir).parent.parent)
+sys.path.insert(0, project_root)
+
+# Now we can import app modules
 from app.core.background_tasks import background_task_manager
 from app.core.cache import CacheManager
 from main import app
+from app.db.base import get_db
 
 @pytest.fixture(scope="session")
 def event_loop():
