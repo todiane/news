@@ -1,18 +1,29 @@
+# backend/tests/conftest.py
 import os
 import sys
 from pathlib import Path
 import pytest
-import asyncio
-from typing import Generator, AsyncGenerator
-from sqlalchemy.orm import Session
-from fastapi.testclient import TestClient
+from dotenv import load_dotenv
 
-# Add project root to Python path BEFORE any app imports
+# Set testing environment
+os.environ["TESTING"] = "true"
+
+# Get the absolute path of the current file (conftest.py)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = str(Path(current_dir).parent.parent)
-sys.path.insert(0, project_root)
+
+# Add the backend directory to Python path
+backend_dir = os.path.join(project_root, 'backend')
+sys.path.insert(0, backend_dir)
+
+# Load test environment variables
+load_dotenv(os.path.join(project_root, '.env.test'))
 
 # Now we can import app modules
+import asyncio
+from typing import AsyncGenerator
+from sqlalchemy.orm import Session
+from fastapi.testclient import TestClient
 from app.core.background_tasks import background_task_manager
 from app.core.cache import CacheManager
 from main import app

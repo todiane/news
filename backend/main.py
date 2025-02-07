@@ -12,6 +12,7 @@ from typing import List, Dict, Any, Optional
 import math
 import logging
 from datetime import datetime
+from pathlib import Path
 
 # Import middleware and background tasks
 from app.core.middleware import RateLimitMiddleware
@@ -30,10 +31,13 @@ from app.models.feed import Feed
 from app.models.article import Article
 from app.core.deps import get_current_user
 from app.db.base import get_db
+from app.core.static_handler import static_handler
+from app.core.static_security import StaticSecurity
 
 # Import routers
 from app.api.v1.endpoints import auth, articles, admin, feed
 from app.api.v1.api import api_router
+
 
 
 # Create instances
@@ -44,6 +48,20 @@ feed_fetcher = FeedFetcher()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+# Static files configuration
+static_path = Path(__file__).parent / "static"
+if not static_path.exists():
+    static_path.mkdir(parents=True)
+
+# Custom exception handler for static files
+async def static_files_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Static file error: {str(exc)}")
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "Static file not found"}
+    )
+
 app = FastAPI(
     title="Development News API",
     description="API for fetching and managing development-focused news articles",
@@ -51,6 +69,32 @@ app = FastAPI(
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc"
 )
+
+# Mount static files with custom configuration
+app.mount(
+    "/static",
+    StaticFiles(
+        directory=static_path,
+        check_dir=True,
+        html=True,
+        follow_symlinks=False
+    ),
+    name="static"
+)
+
+# Add exception handler
+app.add_exception_handler(HTTPException, static_files_exception_handler)
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    if str(request.url.path).startswith("/static"):
+        response.headers["Cache-Control"] = "public, max-age=31536000"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
 
 # Exception Handlers
 @app.exception_handler(RequestValidationError)
@@ -125,8 +169,7 @@ async def add_version_header(request: Request, call_next):
     response.headers["X-API-Version"] = APIVersion.V1
     return response
 
-# Static files and templates
-app.mount("/static", StaticFiles(directory="static"), name="static")
+#  templates
 templates = Jinja2Templates(directory="templates")
 
 # Include API routers
