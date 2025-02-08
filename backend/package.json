@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "tailwind.config.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tailwindcss -i ./static/css/input.css -o ./static/css/main.css --minify",
+    "dev": "tailwindcss -i ./static/css/input.css -o ./static/css/main.css --watch"
   },
   "keywords": [],
   "author": "",
