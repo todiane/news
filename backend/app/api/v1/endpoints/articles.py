@@ -10,6 +10,7 @@ from app.core.versioning import version_config, APIVersion, VersionedResponse
 from app.core.error_handler import ErrorDetail
 from fastapi.responses import Response
 from app.core.feed_generator import RSSFeedGenerator
+from app.core.redis_cache import cache
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,11 @@ async def read_articles(
     current_user: User = Depends(get_current_user),
     api_version: str = Depends(version_config.verify_version)
 ):
+    cache_key = f"articles:{current_user.id}:{skip}:{limit}"
+    cached_data = cache.get_cache(cache_key)
+    if cached_data:
+        return ArticleResponse(**cached_data)
+
     """
     Retrieve articles. This endpoint requires authentication.
     

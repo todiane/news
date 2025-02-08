@@ -2,15 +2,11 @@ import aiohttp
 import feedparser
 from datetime import datetime
 from typing import List, Dict, Any
-from .cache import cached
 from ..schemas.article import ArticleCreate
 from ..core.config import settings
+from app.core.redis_cache import cache
 
 class FeedFetcher:
-    """
-    Handles fetching and parsing of RSS feeds with caching support.
-    """
-    
     def __init__(self):
         self.session = None
     
@@ -21,12 +17,16 @@ class FeedFetcher:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.session:
             await self.session.close()
-    
-    @cached(ttl=300)  # Cache RSS feeds for 5 minutes
+
     async def fetch_rss(self, feed_url: str) -> List[Dict[str, Any]]:
         """
         Fetch and parse an RSS feed, returning a list of standardized article entries.
         """
+        cache_key = f"rss_feed:{feed_url}"
+        cached_data = cache.get_cache(cache_key)
+        if cached_data:
+            return cached_data
+
         try:
             async with self.session.get(feed_url) as response:
                 if response.status != 200:
@@ -53,6 +53,8 @@ class FeedFetcher:
                     }
                     articles.append(article)
                 
+                # Cache the results
+                cache.set_cache(cache_key, articles, ttl=300)  # 5 minutes cache
                 return articles
                 
         except Exception as e:

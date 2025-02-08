@@ -50,9 +50,9 @@ logger = logging.getLogger(__name__)
 
 
 # Static files configuration
-static_path = Path(__file__).parent / "static"
+static_path = Path("/home/djangify/newsapi.djangify.com/backend/static")
 if not static_path.exists():
-    static_path.mkdir(parents=True)
+    static_path.mkdir(parents=True, exist_ok=True)
 
 # Custom exception handler for static files
 async def static_files_exception_handler(request: Request, exc: Exception):
@@ -73,12 +73,7 @@ app = FastAPI(
 # Mount static files with custom configuration
 app.mount(
     "/static",
-    StaticFiles(
-        directory=static_path,
-        check_dir=True,
-        html=True,
-        follow_symlinks=False
-    ),
+    StaticFiles(directory="/home/djangify/newsapi.djangify.com/backend/static"),
     name="static"
 )
 
@@ -170,7 +165,7 @@ async def add_version_header(request: Request, call_next):
     return response
 
 #  templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="/home/djangify/newsapi.djangify.com/backend/templates")
 
 # Include API routers
 app.include_router(api_router, prefix="/api/v1")

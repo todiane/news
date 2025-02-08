@@ -15,6 +15,7 @@ from app.crud.user import user
 from app.schemas.user import UserCreate, User, Token, PasswordReset
 from app.core.versioning import version_config, APIVersion, VersionedResponse
 from app.core.error_handler import ErrorDetail
+from app.core.redis_cache import cache
 import logging
 
 logger = logging.getLogger(__name__)
@@ -115,6 +116,19 @@ async def login(
     db: Session = Depends(get_db),
     api_version: str = Depends(version_config.verify_version)
 ):
+    # Check rate limiting
+    if cache.is_rate_limited(f"login:{request.client.host}", 
+                           settings.LOGIN_RATE_LIMIT, 
+                           settings.LOGIN_RATE_LIMIT_WINDOW):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=ErrorDetail(
+                code="RATE_LIMIT_EXCEEDED",
+                message="Too many login attempts. Please try again later.",
+                details=None
+            ).dict()
+        )
+    
     """
     Login user and return tokens.
     

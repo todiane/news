@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+# \backend\app\api\v1\endpoints
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+
 
 from app.db.base import get_db
 from app.core.deps import get_current_user
@@ -9,7 +11,7 @@ from app.core.feed_validator import feed_validator
 from app.models.user import User
 from app.models.feed import Feed
 from app.schemas.feed import FeedCreate, FeedUpdate, Feed as FeedSchema
-from app.core.cache import CacheManager
+from app.core.redis_cache import cache
 import logging
 
 logger = logging.getLogger(__name__)
@@ -173,8 +175,7 @@ async def delete_feed(
         db.commit()
         
         # Clear any cached data for this feed
-        cache = CacheManager()
-        cache.invalidate(f"feed_{feed_id}")
+        cache.delete_cache(f"feed_{feed_id}")
         
         return {"message": "Feed deleted successfully"}
     except Exception as e:
@@ -299,8 +300,7 @@ async def refresh_feed(
             db.refresh(feed)
             
             # Clear cache for this feed
-            cache = CacheManager()
-            cache.invalidate(f"feed_{feed_id}")
+            cache.delete_cache(f"feed_{feed_id}")
             
             return {
                 "message": "Feed refreshed successfully",

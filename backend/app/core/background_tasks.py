@@ -14,6 +14,7 @@ from app.core.notification_manager import notification_manager
 from app.models.feed_preference import FeedPreference
 from app.models.feed import Feed
 from app.models.user import User
+from app.core.redis_cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -110,32 +111,37 @@ class BackgroundTaskManager:
             logger.error(f"Error getting feeds to refresh: {str(e)}")
             return []
 
-    async def _process_feed_updates(self, feed: Feed):
-        """Process updates for a single feed."""
-        try:
-            # Fetch new content
-            new_content = await self.feed_fetcher.fetch_feed_with_cache(feed.url)
-            if not new_content:
-                return
+async def _process_feed_updates(self, feed: Feed):
+    """Process updates for a single feed."""
+    try:
+        cache_key = f"feed_content:{feed.id}"
+        cached_content = cache.get_cache(cache_key)
+        if cached_content:
+            return cached_content
 
-            # Get cached content
-            cache_key = f"feed_{feed.id}_content"
-            cached_content = self.cache.get(cache_key)
-
-            # Find new updates
-            new_updates = self._find_new_updates(new_content, cached_content)
+        # Fetch new content
+        new_content = await self.feed_fetcher.fetch_feed_with_cache(feed.url)
+        if new_content:
+            # Update Redis cache
+            cache.set_cache(cache_key, new_content)
+            
+            # Find new updates by comparing with previous content
+            old_cache_key = f"feed_previous_{feed.id}"
+            previous_content = cache.get_cache(old_cache_key)
+            new_updates = self._find_new_updates(new_content, previous_content)
+            
             if new_updates:
                 # Process notifications
                 await self._handle_new_updates(feed, new_updates)
                 
-                # Update cache with new content
-                self.cache.set(cache_key, new_content)
+                # Update previous content cache
+                cache.set_cache(old_cache_key, new_content)
 
             # Update feed metadata
             await self._update_feed_metadata(feed)
 
-        except Exception as e:
-            logger.error(f"Error processing feed {feed.id} updates: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error processing feed {feed.id} updates: {str(e)}")
 
     async def _process_notifications_periodically(self):
         """Periodically process and send batched notifications."""
