@@ -18,6 +18,7 @@ from pathlib import Path
 # Import middleware and background tasks
 from app.core.middleware import RateLimitMiddleware
 from app.core.middleware import RequestIDMiddleware
+from app.core.auth_middleware import jwt_middleware, rbac
 from app.core.background_tasks import background_task_manager, BackgroundTasks
 from app.core.notification_manager import NotificationManager
 from app.core.feed_fetcher import FeedFetcher
@@ -92,6 +93,9 @@ async def add_security_headers(request: Request, call_next):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
     return response
 
 # Exception Handlers
@@ -162,6 +166,8 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.middleware("http")(security_middleware)
+app.middleware("http")(jwt_middleware)
+app.middleware("http")(rbac)
 
 # CORS configuration
 app.add_middleware(
@@ -193,6 +199,14 @@ async def add_version_header(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-API-Version"] = APIVersion.V1
     return response
+
+@app.middleware("http")
+async def auth_rate_limit(request: Request, call_next):
+    if request.url.path.startswith("/api/v1/auth/"):
+        # Add specific rate limiting for auth endpoints
+        pass
+    return await call_next(request)
+
 
 #  templates
 templates = Jinja2Templates(directory="/home/djangify/newsapi.djangify.com/backend/templates")
