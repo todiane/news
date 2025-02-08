@@ -28,6 +28,30 @@ class VersionedAPIConfig:
     def is_deprecated(self, version: str) -> bool:
         """Check if a version is deprecated."""
         return version in self.deprecated_versions
+    
+    def get_version_features(self, version: str) -> set:
+        """Get available features for a specific version"""
+        features = {
+            APIVersion.V1: {"basic_crud", "auth"},
+            APIVersion.V1_1: {"basic_crud", "auth", "feed_management", "notifications"},
+            APIVersion.V2: {"basic_crud", "auth", "feed_management", "notifications", "analytics", "bulk_operations"}
+        }
+        return features.get(version, set())
+
+    def check_feature_availability(self, feature: str, version: str) -> bool:
+        """Check if a feature is available in specified version"""
+        available_features = self.get_version_features(version)
+        return feature in available_features
+
+    def get_migration_path(self, from_version: str, to_version: str) -> list:
+        """Get migration steps between versions"""
+        version_order = list(self.supported_versions.keys())
+        try:
+            start_idx = version_order.index(from_version)
+            end_idx = version_order.index(to_version)
+            return version_order[start_idx:end_idx + 1]
+        except ValueError:
+            return []
 
     async def verify_version(self, api_version: Optional[str] = Header(None, alias="X-API-Version")):
         """Dependency for checking API version headers."""
@@ -62,6 +86,16 @@ class VersionedAPIConfig:
             )
             
         return api_version
+
+
+class VersionFeatures:
+    """Track features available in each API version"""
+    def __init__(self, version: str, features: set):
+        self.version = version
+        self.features = features
+        self.breaking_changes = []
+        self.deprecated_features = set()
+
 
 class VersionedResponse(BaseModel):
     """Base model for versioned API responses."""

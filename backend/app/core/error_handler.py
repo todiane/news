@@ -1,3 +1,5 @@
+import datetime
+import uuid
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -10,10 +12,18 @@ import traceback
 logger = logging.getLogger(__name__)
 
 class ErrorDetail(BaseModel):
-    """Standardized error response model."""
     code: str
     message: str
     details: Optional[Dict[str, Any]] = None
+    trace_id: Optional[str] = None
+    timestamp: Optional[str] = None
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if not self.timestamp:
+            self.timestamp = datetime.utcnow().isoformat()
+        if not self.trace_id:
+            self.trace_id = str(uuid.uuid4())
     
     class Config:
         schema_extra = {

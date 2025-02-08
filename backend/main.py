@@ -16,6 +16,7 @@ from pathlib import Path
 
 # Import middleware and background tasks
 from app.core.middleware import RateLimitMiddleware
+from app.core.middleware import RequestIDMiddleware
 from app.core.background_tasks import background_task_manager, BackgroundTasks
 
 from app.core.notification_manager import NotificationManager
@@ -95,25 +96,35 @@ async def add_security_headers(request: Request, call_next):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """Handle request validation errors."""
-    logger.error(f"Validation error: {exc}")
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content=ErrorDetail(
-            code="VALIDATION_ERROR",
-            message="Invalid input data",
-            details={"errors": [{"loc": err["loc"], "msg": err["msg"]} for err in exc.errors()]}
-        ).dict()
+    logger.error(
+        f"Validation error for {request.url.path}",
+        extra={
+            "request_id": request.state.request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "errors": exc.errors()
+        }
     )
+    return await error_handler.handle_exception(request, exc)
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Handle HTTP exceptions."""
+    logger.error(
+        f"HTTP error for {request.url.path}",
+        extra={
+            "request_id": request.state.request_id,
+            "method": request.method,
+            "status_code": exc.status_code
+        }
+    )
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorDetail(
             code=f"HTTP_{exc.status_code}",
             message=str(exc.detail),
-            details=getattr(exc, "details", None)
+            details=getattr(exc, "details", None),
+            trace_id=request.state.request_id
         ).dict(),
         headers=getattr(exc, "headers", None)
     )
@@ -121,31 +132,33 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
     """Handle database errors."""
-    logger.error(f"Database error: {exc}")
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=ErrorDetail(
-            code="DATABASE_ERROR",
-            message="A database error occurred",
-            details={"error": str(exc)} if app.debug else None
-        ).dict()
+    logger.error(
+        f"Database error for {request.url.path}",
+        extra={
+            "request_id": request.state.request_id,
+            "method": request.method,
+            "error": str(exc)
+        }
     )
+    return await error_handler.handle_exception(request, exc)
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle all other exceptions."""
-    logger.error(f"Unexpected error: {exc}", exc_info=True)
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=ErrorDetail(
-            code="INTERNAL_ERROR",
-            message="An unexpected error occurred",
-            details={"error": str(exc)} if app.debug else None
-        ).dict()
+    logger.error(
+        f"Unexpected error for {request.url.path}",
+        extra={
+            "request_id": request.state.request_id,
+            "method": request.method,
+            "error": str(exc)
+        },
+        exc_info=True
     )
+    return await error_handler.handle_exception(request, exc)
 
 # Middleware
 app.add_middleware(RateLimitMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 # CORS configuration
 app.add_middleware(
