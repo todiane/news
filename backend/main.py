@@ -1,5 +1,6 @@
 # backend/main.py
 from fastapi import FastAPI, BackgroundTasks, Request, Depends, Query, HTTPException, status
+from app.core.security_middleware import security_middleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,7 +19,6 @@ from pathlib import Path
 from app.core.middleware import RateLimitMiddleware
 from app.core.middleware import RequestIDMiddleware
 from app.core.background_tasks import background_task_manager, BackgroundTasks
-
 from app.core.notification_manager import NotificationManager
 from app.core.feed_fetcher import FeedFetcher
 
@@ -34,6 +34,8 @@ from app.core.deps import get_current_user
 from app.db.base import get_db
 from app.core.static_handler import static_handler
 from app.core.static_security import StaticSecurity
+
+from app.core.config import settings
 
 # Import routers
 from app.api.v1.endpoints import auth, articles, admin, feed
@@ -159,14 +161,29 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 # Middleware
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
+app.middleware("http")(security_middleware)
 
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update this for production
+    allow_origins=[settings.SERVER_HOST],  # Only allow requests from our domain
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],  # Explicitly list allowed methods
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "X-API-Version",
+        "X-CSRF-Token"
+    ],
+    expose_headers=[
+        "X-API-Version",
+        "X-Total-Count",
+        "X-Page-Count"
+    ],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # Version header middleware
