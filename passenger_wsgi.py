@@ -4,7 +4,7 @@ import sys
 import logging
 from logging.handlers import RotatingFileHandler
 
-# Set up logging
+# Keep your existing logging setup
 def setup_logging():
     logger = logging.getLogger('passenger_wsgi')
     logger.setLevel(logging.DEBUG)
@@ -34,26 +34,22 @@ try:
     SITE_PACKAGES_PATH = os.path.join(VENV_PATH, 'lib', 'python3.10', 'site-packages')
     sys.path.insert(0, SITE_PACKAGES_PATH)
     
-    # Add application paths - note the order is important
+    # Add application paths
     BASE_PATH = "/home/djangify/newsapi.djangify.com"
     BACKEND_PATH = os.path.join(BASE_PATH, "backend")
     APP_PATH = os.path.join(BACKEND_PATH, "app")
     
-    # Add paths in reverse order (most specific first)
     sys.path.insert(0, APP_PATH)
     sys.path.insert(0, BACKEND_PATH)
     sys.path.insert(0, BASE_PATH)
     
-    logger.info(f'Python paths:')
-    logger.info(f'BASE_PATH: {BASE_PATH}')
-    logger.info(f'BACKEND_PATH: {BACKEND_PATH}')
-    logger.info(f'APP_PATH: {APP_PATH}')
-    
     logger.info('Importing FastAPI app...')
     from backend.main import app
+    from asgiref.wsgi import WsgiToAsgi
     
     logger.info('FastAPI app imported successfully')
-    application = app
+    application = WsgiToAsgi(app)
+    logger.info('WSGI application created successfully')
 
 except Exception as e:
     logger.error(f'Error in passenger_wsgi.py: {str(e)}', exc_info=True)

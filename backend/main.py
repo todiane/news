@@ -43,6 +43,17 @@ from app.api.v1.endpoints import auth, articles, admin, feed
 from app.api.v1.api import api_router
 
 
+PUBLIC_PATHS = {
+    "/",
+    "/static",
+    "/health",
+    "/login",
+    "/register",
+    "/favicon.ico",
+    "/api/v1/docs",
+    "/api/v1/redoc",
+    "/openapi.json"
+}
 
 # Create instances
 notification_manager = NotificationManager()
@@ -57,6 +68,14 @@ logger = logging.getLogger(__name__)
 static_path = Path("/home/djangify/newsapi.djangify.com/backend/static")
 if not static_path.exists():
     static_path.mkdir(parents=True, exist_ok=True)
+
+
+# verify templates directory
+template_path = Path("/home/djangify/newsapi.djangify.com/backend/templates/base.html")
+if not template_path.exists():
+    logger.error(f"Template not found at {template_path}")
+    raise RuntimeError("Template files missing")
+
 
 # Custom exception handler for static files
 async def static_files_exception_handler(request: Request, exc: Exception):
@@ -166,8 +185,8 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.middleware("http")(security_middleware)
-app.middleware("http")(jwt_middleware)
-app.middleware("http")(rbac)
+# app.middleware("http")(jwt_middleware)
+# app.middleware("http")(rbac)
 
 # CORS configuration
 app.add_middleware(
@@ -200,13 +219,17 @@ async def add_version_header(request: Request, call_next):
     response.headers["X-API-Version"] = APIVersion.V1
     return response
 
+# Modify the auth_middleware section in main.py
 @app.middleware("http")
 async def auth_rate_limit(request: Request, call_next):
+    # Skip middleware for public paths
+    if any(request.url.path.startswith(path) for path in PUBLIC_PATHS):
+        return await call_next(request)
+        
     if request.url.path.startswith("/api/v1/auth/"):
         # Add specific rate limiting for auth endpoints
         pass
     return await call_next(request)
-
 
 #  templates
 templates = Jinja2Templates(directory="/home/djangify/newsapi.djangify.com/backend/templates")
@@ -251,10 +274,23 @@ async def health_check():
 # Frontend views
 @app.get("/")
 async def home(request: Request):
-    return templates.TemplateResponse(
-        "base.html", 
-        {"request": request}
-    )
+    try:
+        logger.info("Attempting to render home page")
+        response = templates.TemplateResponse(
+            "base.html", 
+            {
+                "request": request,
+                "current_user": None  # Explicitly set to None for public access
+            }
+        )
+        logger.info("Home page template rendered successfully")
+        return response
+    except Exception as e:
+        logger.error(f"Error rendering home page: {str(e)}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": str(e)}
+        )
 
 @app.get("/articles")
 async def articles_view(request: Request):
