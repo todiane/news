@@ -1,9 +1,11 @@
 [build]
 builder = "NIXPACKS"
+
+# Setup Python and Node environment
 buildCommand = """
-cd backend && \
 python -m pip install --upgrade pip && \
-pip install -r requirements.txt && \
+pip install -r backend/requirements.txt && \
+cd backend && \
 npm ci && \
 NODE_ENV=production npm run build
 """
