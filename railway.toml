@@ -1,11 +1,11 @@
-# /railway.toml
 [build]
 builder = "NIXPACKS"
 buildCommand = """
 cd backend && \
+python -m pip install --upgrade pip && \
 pip install -r requirements.txt && \
-npm install && \
-npm run build
+npm ci && \
+NODE_ENV=production npm run build
 """
 
 [deploy]
