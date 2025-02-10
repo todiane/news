@@ -69,3 +69,5 @@ build/
 *.tsbuildinfo
 *.egg-info/
 *.egg
+
+newsapi.egg-info
