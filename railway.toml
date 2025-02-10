@@ -1,7 +1,11 @@
 # /home/djangify/news/railway.toml
 [build]
 builder = "NIXPACKS"
-buildCommand = "pip install -r requirements.txt"
+buildCommand = """
+pip install -r requirements.txt && \
+npm install && \
+npm run build:css
+"""
 
 [deploy]
 startCommand = "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"

@@ -71,3 +71,5 @@ build/
 *.egg
 
 newsapi.egg-info
+node_modules/
+backend/static/css/main.css
