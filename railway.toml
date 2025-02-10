@@ -1,10 +1,11 @@
-# /home/djangify/news/railway.toml
+# /railway.toml
 [build]
 builder = "NIXPACKS"
 buildCommand = """
+cd backend && \
 pip install -r requirements.txt && \
 npm install && \
-npm run build:css
+npm run build
 """
 
 [deploy]
