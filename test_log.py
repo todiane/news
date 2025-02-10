@@ -1,4 +1,5 @@
-# test_log.py in /home/djangify/newsapi.djangify.com/
+# /home/djangify/newsapi.djangify.com/test_log.py
+
 import os
 import logging
 
