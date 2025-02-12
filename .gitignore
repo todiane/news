@@ -15,16 +15,37 @@ coverage.html
 .mypy_cache/
 .ruff_cache/
 
-# Astro
-.astro/
+# Python testing and caches
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+
+# Python build
+develop-eggs/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+bin/
+
+# Railway specific
+.railway/
+
+# FastAPI specific
+.fastapi_cache/
+
+
 dist/
 node_modules/
 .env*.local
 .env.production
 .output/
-.vercel
-.netlify
-.turbo
 .cache/
 
 # Database
@@ -60,7 +81,7 @@ pnpm-debug.log*
 !.env.example
 virtualenv
 alembic.ini
-config.py
+
 
 
 # Build output
@@ -72,4 +93,4 @@ build/
 
 newsapi.egg-info
 node_modules/
-backend/static/css/main.css
+static/css/main.css
