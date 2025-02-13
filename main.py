@@ -1,4 +1,5 @@
 from fastapi import FastAPI, BackgroundTasks, Request, Depends, Query, HTTPException, status
+from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +19,7 @@ from app.core.middleware import RateLimitMiddleware
 from app.core.background_tasks import background_task_manager, BackgroundTasks
 from app.core.notification_manager import NotificationManager
 from app.core.feed_fetcher import FeedFetcher
+from app.core.middleware import AuthenticationMiddleware
 
 # Import error handling and versioning
 from app.core.error_handler import error_handler, ErrorDetail
@@ -50,6 +52,8 @@ app = FastAPI(
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc"
 )
+
+
 
 # Configure paths
 BASE_DIR = Path(__file__).parent
@@ -88,8 +92,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    """Handle HTTP exceptions."""
+async def http_exception_handler(request: Request, exc: HTTPException) -> Response:
+    if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+        if "text/html" in request.headers.get("accept", ""):
+            return RedirectResponse(
+                url=f"/login?next={request.url.path}",
+                status_code=status.HTTP_302_FOUND
+            )
+    
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorDetail(
@@ -122,6 +132,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuthenticationMiddleware)
 
 # Version header middleware
 @app.middleware("http")
@@ -271,10 +282,16 @@ async def reader_view(
 
 # Authentication Routes
 @app.get("/login")
-async def login_page(request: Request):
+async def login_page(
+    request: Request,
+    next: str = Query(None)
+):
     return templates.TemplateResponse(
         "auth/login.html", 
-        {"request": request}
+        {
+            "request": request,
+            "next": next
+        }
     )
 
 @app.get("/register")
