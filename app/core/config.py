@@ -39,7 +39,7 @@ class Settings(BaseSettings):
    MAIL_FROM: str = os.getenv("MAIL_FROM", "")
    MAIL_PORT: int = int(os.getenv("MAIL_PORT", 587))
    MAIL_SERVER: str = os.getenv("MAIL_SERVER", "")
-   MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME", "News API")
+   MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME", "C.A.D. News Feed")
    MAIL_TLS: bool = True
    MAIL_SSL: bool = False
    MAIL_SSL_TLS: bool = True

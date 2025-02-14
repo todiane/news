@@ -4,7 +4,7 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}News API{% endblock %}</title>
+    <title>{% block title %}Coding, AI & Developer News Feed{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="{{ url_for('static', path='/css/main.css') }}" rel="stylesheet">
 
@@ -12,13 +12,13 @@
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website">
         <meta property="og:url" content="{{ request.url }}">
-        <meta property="og:title" content="{{ article.title if article else 'News API' }}">
+        <meta property="og:title" content="{{ article.title if article else 'C.A.D. News Feed' }}">
         <meta property="og:description" content="{{ article.content[:200] if article else 'Latest news and articles' }}">
         
         <!-- Twitter -->
         <meta property="twitter:card" content="summary_large_image">
         <meta property="twitter:url" content="{{ request.url }}">
-        <meta property="twitter:title" content="{{ article.title if article else 'News API' }}">
+        <meta property="twitter:title" content="{{ article.title if article else 'C.A.D. News Feed' }}">
         <meta property="twitter:description" content="{{ article.content[:200] if article else 'Latest news and articles' }}">
 
         <!-- RSS Feed Links -->
@@ -33,7 +33,7 @@
         {% block content %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Content will go here -->
-            <h2 class="text-2xl font-bold text-gray-800">Welcome to News API</h2>
+            <h2 class="text-2xl font-bold text-gray-800">Welcome to C.A.D. News Feed</h2>
         </div>
         {% endblock %}
     </main>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Admin Dashboard - News API{% endblock %}</title>
+    <title>{% block title %}Admin Dashboard - Coding, AI & Developer News Feed{% endblock %}</title>
     <link href="{{ url_for('static', path='/css/main.css') }}" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -13,7 +13,7 @@
         <div :class="{'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen}" 
              class="fixed inset-y-0 left-0 z-30 w-64 bg-gray-900 text-white transform transition-transform duration-300 md:translate-x-0 md:static md:inset-0">
             <div class="flex items-center justify-between h-16 px-4 bg-gray-800">
-                <div class="text-xl font-semibold">News API Admin</div>
+                <div class="text-xl font-semibold">C.A.D. News Feed Admin</div>
                 <button @click="sidebarOpen = false" class="md:hidden">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>

@@ -4,16 +4,17 @@
         <div class="flex justify-between h-16">
             <div class="flex space-x-7">
                 <div class="flex items-center">
-                    <a href="/" class="text-xl font-bold text-gray-800">News API</a>
+                    <a href="/" class="text-xl font-bold text-gray-800">C.A.D. News Feed</a>
                 </div>
                 <!-- Primary Navigation -->
                 <div class="hidden md:flex items-center space-x-1">
                     <a href="/" class="py-4 px-2 text-gray-500 hover:text-gray-900 {% if request.url.path == '/' %}text-blue-500{% endif %}">Home</a>
                     <a href="/articles" class="py-4 px-2 text-gray-500 hover:text-gray-900 {% if request.url.path == '/articles' %}text-blue-500{% endif %}">Articles</a>
-                    <a href="/reader" class="py-4 px-2 text-gray-500 hover:text-gray-900 {% if request.url.path == '/reader' %}text-blue-500{% endif %}">Reader</a>
-                    <a href="/feeds" class="py-4 px-2 text-gray-500 hover:text-gray-900 {% if request.url.path == '/feeds' %}text-blue-500{% endif %}">Manage Feeds</a>
+                    {% if current_user %}
+                        <a href="/reader" class="py-4 px-2 text-gray-500 hover:text-gray-900 {% if request.url.path == '/reader' %}text-blue-500{% endif %}">Reader</a>
+                        <a href="/feeds" class="py-4 px-2 text-gray-500 hover:text-gray-900 {% if request.url.path == '/feeds' %}text-blue-500{% endif %}">Manage Feeds</a>
+                    {% endif %}
                 </div>
-            </div>
             
             <div class="flex items-center space-x-4">
                 <!-- Search Bar -->

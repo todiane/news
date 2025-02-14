@@ -46,8 +46,8 @@ feed_fetcher = FeedFetcher()
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Development News API",
-    description="API for fetching and managing development-focused news articles",
+    title="C.A.D News Feed API",
+    description="API for fetching and managing the latest Coding, AI, & Developer News",
     version=APIVersion.V1,
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc"
