@@ -20,11 +20,14 @@
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
             <!-- Error Message Container -->
-            <div id="error-container" class="mb-4 hidden bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative" role="alert" aria-live="polite">
+            <div id="error-container" class="mb-4 hidden bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative" role="alert" aria-live="assertive">
                 <span class="block sm:inline" id="error-message"></span>
+                <button type="button" class="absolute top-0 right-0 p-2" aria-label="Close" onclick="hideError()">
+                    <span class="text-xl">&times;</span>
+                </button>
             </div>
 
-            <form id="register-form" class="space-y-6" method="POST">
+            <form id="register-form" class="space-y-6">
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700">
                         Email address
@@ -41,10 +44,16 @@
                         Password
                     </label>
                     <div class="mt-1">
-                        <input id="password" name="password" type="password" required
+                        <input id="password" 
+                            name="password" 
+                            type="password" 
+                            required
+                            minlength="8"
                             class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            aria-describedby="password-error">
-                    </div>
+                            aria-describedby="password-requirements">
+                        <div id="password-requirements" class="mt-1 text-sm text-gray-500">
+                            Password must be at least 8 characters long
+                        </div>
                 </div>
 
                 <div>
