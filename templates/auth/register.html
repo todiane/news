@@ -1,7 +1,7 @@
 <!-- templates/auth/register.html -->
 {% extends "base.html" %}
 
-{% block title %}Register - C.A.D. News Feed{% endblock %}
+{% block title %}Register - Djangify News Feed{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -19,23 +19,20 @@
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            <!-- Error Message (if any) -->
-            {% if error %}
-            <div class="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative" role="alert">
-                <span class="block sm:inline">{{ error }}</span>
+            <!-- Error Message Container -->
+            <div id="error-container" class="mb-4 hidden bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative" role="alert" aria-live="polite">
+                <span class="block sm:inline" id="error-message"></span>
             </div>
-            {% endif %}
 
-            <form class="space-y-6" action="/api/v1/auth/register" method="POST">
+            <form id="register-form" class="space-y-6" method="POST">
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700">
                         Email address
                     </label>
                     <div class="mt-1">
-                        <input id="email" name="email" type="email" autocomplete="email" aria-labelledby="email-label"
-                        aria-describedby="email-error"
-                        aria-invalid="false" required
-                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <input id="email" name="email" type="email" autocomplete="email" required
+                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            aria-describedby="email-error">
                     </div>
                 </div>
 
@@ -45,7 +42,8 @@
                     </label>
                     <div class="mt-1">
                         <input id="password" name="password" type="password" required
-                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            aria-describedby="password-error">
                     </div>
                 </div>
 
@@ -55,14 +53,23 @@
                     </label>
                     <div class="mt-1">
                         <input id="confirm_password" name="confirm_password" type="password" required
-                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            aria-describedby="confirm-password-error">
                     </div>
                 </div>
 
                 <div>
                     <button type="submit"
-                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Register
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        id="submit-button">
+                        <span id="button-text">Register</span>
+                        <span id="button-loading" class="hidden">
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
+                        </span>
                     </button>
                 </div>
             </form>
@@ -72,63 +79,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-document.querySelector('form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    
-    // Password validation
-    const password = formData.get('password');
-    const confirmPassword = formData.get('confirm_password');
-    
-    if (password !== confirmPassword) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative';
-        errorDiv.textContent = 'Passwords do not match';
-        
-        const existingError = document.querySelector('[role="alert"]');
-        if (existingError) {
-            existingError.remove();
-        }
-        
-        const form = document.querySelector('form');
-        form.insertAdjacentElement('beforebegin', errorDiv);
-        return;
-    }
-
-    try {
-        const response = await fetch('/api/v1/auth/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                email: formData.get('email'),
-                password: password
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.detail || 'Registration failed');
-        }
-
-        // Redirect to verification message page
-        window.location.href = '/auth/verify-email-sent';
-    } catch (error) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative';
-        errorDiv.textContent = error.message;
-        
-        const existingError = document.querySelector('[role="alert"]');
-        if (existingError) {
-            existingError.remove();
-        }
-        
-        const form = document.querySelector('form');
-        form.insertAdjacentElement('beforebegin', errorDiv);
-    }
-});
-</script>
+<script src="{{ url_for('static', path='js/admin/auth/register.js') }}"></script>
 {% endblock %}

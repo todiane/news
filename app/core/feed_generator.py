@@ -8,7 +8,7 @@ class RSSFeedGenerator:
     def __init__(self):
         self.fg = FeedGenerator()
         self.fg.title('C.A.D News Feed')
-        self.fg.description('API for fetching and managing the latest Coding, AI, & Developer News')
+        self.fg.description('API for fetching and managing the latest Coding, AI, & Software Developer News, created by Djangify')
         self.fg.link(href=settings.SERVER_HOST)
         self.fg.language('en')
 
