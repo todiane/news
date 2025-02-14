@@ -23,7 +23,7 @@ def upgrade() -> None:
     op.alter_column('users', 'is_admin',
                existing_type=sa.Boolean(),
                nullable=False,
-               server_default=sa.text('0'))
+               server_default=sa.text('FALSE'))  # Changed from '0' to 'FALSE'
 
 def downgrade() -> None:
     op.alter_column('users', 'is_admin',

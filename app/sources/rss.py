@@ -3,7 +3,10 @@ from datetime import datetime
 from typing import List, Optional
 import feedparser
 import json
-from ..models.article import Article
+from app.models.article import Article
+
+import logging
+logger = logging.getLogger(__name__)
 
 class RSSFeedSource:
     def __init__(self):
@@ -34,37 +37,50 @@ class RSSFeedSource:
         }
 
     async def fetch_articles(self, source_name: str) -> List[Article]:
-        feed_info = self.tech_feeds.get(source_name)
-        if not feed_info:
+        """Fetch articles from RSS feed"""
+        try:
+            feed_info = self.tech_feeds.get(source_name)
+            if not feed_info:
+                logger.error(f"Unknown RSS source: {source_name}")
+                return []
+
+            feed = feedparser.parse(feed_info["url"])
+            if feed.bozo:
+                logger.error(f"Invalid RSS feed for {source_name}: {feed.bozo_exception}")
+                return []
+
+            articles = []
+            for entry in feed.entries:
+                try:
+                    # Handle different feed formats
+                    content = entry.get('content', [{}])[0].get('value', '')
+                    if not content:
+                        content = entry.get('summary', '')
+
+                    article = Article(
+                        title=entry.get('title', ''),
+                        content=content,
+                        url=entry.get('link', ''),
+                        source=source_name,
+                        source_id=entry.get('id', ''),
+                        api_source='rss',
+                        category=feed_info["type"],
+                        author=entry.get('author', ''),
+                        published_date=self._parse_date(entry.get('published', '')),
+                        metadata=json.dumps({
+                            'tags': entry.get('tags', []),
+                            'media': self._extract_media(entry)
+                        })
+                    )
+                    articles.append(article)
+                except Exception as e:
+                    logger.error(f"Error processing RSS article: {e}")
+                    continue
+
+            return articles
+        except Exception as e:
+            logger.error(f"Error fetching RSS feed {source_name}: {e}")
             return []
-
-        feed = feedparser.parse(feed_info["url"])
-        articles = []
-
-        for entry in feed.entries:
-            # Handle different feed formats
-            content = entry.get('content', [{}])[0].get('value', '')
-            if not content:
-                content = entry.get('summary', '')
-
-            article = Article(
-                title=entry.get('title', ''),
-                content=content,
-                url=entry.get('link', ''),
-                source=source_name,
-                source_id=entry.get('id', ''),
-                api_source='rss',
-                category=feed_info["type"],
-                author=entry.get('author', ''),
-                published_date=self._parse_date(entry.get('published', '')),
-                metadata=json.dumps({
-                    'tags': entry.get('tags', []),
-                    'media': self._extract_media(entry)
-                })
-            )
-            articles.append(article)
-
-        return articles
 
     async def fetch_videos(self, channel: str) -> List[Article]:
         feed_url = self.video_feeds["youtube"].get(channel)
@@ -97,7 +113,7 @@ class RSSFeedSource:
             videos.append(video)
 
         return videos
-
+    
     def _parse_date(self, date_str: str) -> datetime:
         try:
             return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %z")
