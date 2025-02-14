@@ -1,6 +1,8 @@
 # Python/FastAPI
 virtualenv/
 __pycache__/
+*.pyc
+.pytest_cache/
 *.py[cod]
 *$py.class
 *.so
@@ -81,6 +83,8 @@ pnpm-debug.log*
 !.env.example
 virtualenv
 alembic.ini
+
+
 
 
 

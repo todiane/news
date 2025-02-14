@@ -4,8 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
 from jose import jwt
-
-from app.db.base import get_db
+from app.db.session import get_db
 from app.core.config import settings
 from app.core.security import create_access_token, create_refresh_token, verify_password
 from app.core.password import validate_password, PasswordValidationError

@@ -5,7 +5,7 @@ from app.crud.user import user
 from app.crud.article import article
 from app.schemas.user import User
 from app.schemas.article import Article
-from app.db.base import get_db
+from app.db.session import get_db
 from app.core.deps import get_current_admin_user
 
 router = APIRouter()

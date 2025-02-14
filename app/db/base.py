@@ -1,16 +1,7 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from app.core.config import settings
-
-engine = create_engine(settings.DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-# Add this function for database dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Import all the models here for Alembic
+from app.db.base_class import Base  # noqa
+from app.models.user import User  # noqa
+from app.models.article import Article  # noqa
+from app.models.feed import Feed  # noqa
+from app.models.feed_history import FeedHistory  # noqa
+from app.models.feed_preference import FeedPreference  # noqa

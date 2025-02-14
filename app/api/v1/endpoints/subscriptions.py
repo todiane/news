@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 
-from app.db.base import get_db
+from app.db.session import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.feed_preference import FeedPreference

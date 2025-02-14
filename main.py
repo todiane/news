@@ -30,7 +30,7 @@ from app.models.user import User
 from app.models.feed import Feed
 from app.models.article import Article
 from app.core.deps import get_current_user
-from app.db.base import get_db
+from app.db.session import get_db
 
 # Import routers
 from app.api.v1.endpoints import auth, articles, admin, feed

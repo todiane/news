@@ -8,7 +8,7 @@ from datetime import datetime
 import logging
 from app.core.config import settings
 from app.models.user import User
-from app.db.base import get_db
+from app.db.session import get_db
 from sqlalchemy.orm import Session
 from app.crud.user import user as user_crud
 

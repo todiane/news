@@ -27,7 +27,7 @@ from fastapi.testclient import TestClient
 from app.core.background_tasks import background_task_manager
 from app.core.cache import CacheManager
 from main import app
-from app.db.base import get_db
+from app.db.session import get_db
 
 @pytest.fixture(scope="session")
 def event_loop():

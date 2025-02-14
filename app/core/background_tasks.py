@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import asyncio
 import logging
 from typing import Set
-from app.db.base import get_db 
+from app.db.session import get_db
 from app.core.feed_fetcher import feed_fetcher
 from app.core.redis_cache import cache
 from app.models.feed import Feed

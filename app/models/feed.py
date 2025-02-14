@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, JSON  # Add JSON here
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from app.db.base import Base
+from app.db.base_class import Base
 
 class Feed(Base):
     __tablename__ = "feeds"

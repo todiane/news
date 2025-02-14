@@ -2,7 +2,7 @@
 import uuid
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from .rate_limit import rate_limiter
+from app.core.rate_limit import rate_limiter
 from fastapi import status
 from fastapi.responses import JSONResponse, RedirectResponse
 import logging
