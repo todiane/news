@@ -8,23 +8,10 @@ class StaticViewSitemap(Sitemap):
     changefreq = 'daily'
 
     def items(self):
-        return ['home', 'privacy_policy']
+        return ['home', 'privacy_policy', 'terms_policy']
 
     def location(self, item):
         return reverse(item)
-
-class ContentSitemap(Sitemap):
-    changefreq = 'weekly'
-    priority = 0.6
-
-    def items(self):
-        return Content.objects.all()
-
-    def lastmod(self, obj):
-        return obj.updated_at
-
-    def location(self, obj):
-        return f'/content/{obj.id}/'
 
 class CategorySitemap(Sitemap):
     changefreq = 'weekly'

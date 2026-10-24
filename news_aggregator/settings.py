@@ -6,30 +6,17 @@ env = environ.Env()
 environ.Env.read_env(os.path.join(Path(__file__).resolve().parent.parent, '.env'))
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key-here')
-DEBUG = False
+SECRET_KEY = env('DJANGO_SECRET_KEY', default='insecure-dev-key-change-me')
+DEBUG = env.bool('DEBUG', default=False)
 
-ALLOWED_HOSTS = ['news.djangify.com','65.108.89.200', 'www.news.djangify.com', '.djangify.com', '127.0.0.1', '127.0.0.1:8000', 'localhost',]
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
-
-# CSRF Configuration
-CSRF_TRUSTED_ORIGINS = [
-    'https://news.djangify.com',
-    'https://www.news.djangify.com',
-    'https://65.108.89.200',
-    'http://localhost',
-    'http://127.0.0.1',
-]
-
-# Database configuration
+# Database: standard Django SQLite (db.sqlite3 in the project folder)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DATABASE_NAME'),
-        'USER': env('DATABASE_USER'),
-        'PASSWORD': env('DATABASE_PASSWORD'),
-        'HOST': env('DATABASE_HOST', default='localhost'),
-        'PORT': env('DATABASE_PORT', default='5432'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -45,7 +32,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sitemaps',
     'rest_framework',
-    'django_crontab',
     'feeds',
     'core',
 ]
@@ -141,10 +127,11 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# Add Crontab settings
-CRONJOBS = [
-    ('0 */7 * * *', 'django.core.management.call_command', ['fetch_feeds'])
-]
+# Schedule with the server's cron, e.g.:
+#   0 */6 * * * cd /path/to/news && venv/bin/python manage.py fetch_feeds
+
+# Token the Claude connector must send to use /mcp/ (leave empty to disable it)
+MCP_TOKEN = env('MCP_TOKEN', default='')
 
 REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
@@ -157,15 +144,21 @@ REST_FRAMEWORK = {
     }
 }
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+# Redis is optional: set REDIS_URL in .env to use it, otherwise use in-process memory
+REDIS_URL = env('REDIS_URL', default='')
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
         }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
 
 # Cache timeout (15 minutes)
 CACHE_TTL = 60 * 15

@@ -1,3 +1,15 @@
+// Feed content is untrusted: escape before putting it into innerHTML
+function esc(value) {
+  const d = document.createElement('div');
+  d.textContent = value == null ? '' : String(value);
+  return d.innerHTML.replace(/"/g, '&quot;');
+}
+function stripTags(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html || '';
+  return d.textContent || '';
+}
+
 // static/js/main.js
 document.addEventListener('DOMContentLoaded', function () {
   const loadMoreButton = document.getElementById('load-more');
@@ -90,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let cardImage = '';
     if (content.image_url) {
-      cardImage = `<img src="${content.image_url}" alt="${content.title}" class="absolute h-full w-full object-cover">`;
+      cardImage = `<img src="${content.image_url}" alt="${esc(content.title)}" class="absolute h-full w-full object-cover">`;
     } else {
       cardImage = `
         <div class="absolute h-full w-full bg-gray-200 flex items-center justify-center">
@@ -132,12 +144,12 @@ document.addEventListener('DOMContentLoaded', function () {
       </div>
       <div class="p-4">
         <div class="flex items-center text-xs text-gray-500 mb-2">
-          <span class="mr-2">${content.source_name || 'Unknown Source'}</span>
+          <span class="mr-2">${esc(content.source_name || 'Unknown Source')}</span>
           <span>${formattedDate}</span>
         </div>
-        <h3 class="font-bold text-lg mb-2 line-clamp-2 h-14">${content.title}</h3>
-        <p class="text-gray-600 text-sm line-clamp-3 h-14 mb-4">${content.description || ''}</p>
-        <a href="${content.url}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center">
+        <h3 class="font-bold text-lg mb-2 line-clamp-2 h-14">${esc(content.title)}</h3>
+        <p class="text-gray-600 text-sm line-clamp-3 h-14 mb-4">${esc(content.ai_summary || stripTags(content.description))}</p>
+        <a href="${esc(content.url)}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center">
           Read more
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />

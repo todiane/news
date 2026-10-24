@@ -1,13 +1,17 @@
 # feeds/services/feed_fetcher.py
 
+import socket
 import feedparser
 import logging
 from datetime import datetime
 from django.utils import timezone
+from calendar import timegm
 from urllib.parse import urlparse, parse_qs
 from ..models import RSSFeed, Content
-from django.utils import timezone
-import pytz
+from datetime import timezone as dt_timezone
+
+FETCH_TIMEOUT = 20  # seconds; stops one slow feed hanging the whole run
+ENTRIES_PER_FEED = 10
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +22,8 @@ class FeedFetcher:
     def fetch_feed(self, feed):
         """Fetch and process a single feed"""
         try:
-            parsed_feed = feedparser.parse(feed.url)
+            socket.setdefaulttimeout(FETCH_TIMEOUT)
+            parsed_feed = feedparser.parse(feed.url, agent='DjangifyNews/2.0 (+https://news.djangify.com)')
             
             if hasattr(parsed_feed, 'bozo_exception') and parsed_feed.bozo_exception and not parsed_feed.entries:
                 logger.error(f"Feed error for {feed.name}: {parsed_feed.bozo_exception}")
@@ -33,7 +38,7 @@ class FeedFetcher:
                 feed.save()
                 return
                 
-            for entry in parsed_feed.entries[:4]:  # Limit to latest 4 entries
+            for entry in parsed_feed.entries[:ENTRIES_PER_FEED]:
                 try:
                     # Skip if content already exists
                     if Content.objects.filter(url=entry.link).exists():
@@ -75,9 +80,7 @@ class FeedFetcher:
                         image_url = image_url[:1990]
                     
                     # Get published date
-                    published_date = self.parse_date(
-                        entry.get('published', entry.get('updated', timezone.now()))
-                    )
+                    published_date = self.entry_date(entry)
 
                     Content.objects.create(
                         title=self.clean_text(entry.title),
@@ -110,6 +113,13 @@ class FeedFetcher:
         return text.encode('utf-8', errors='ignore').decode('utf-8')
 
 
+    def entry_date(self, entry):
+        """Use feedparser's pre-parsed UTC time, else fall back to the string, else now"""
+        parsed = entry.get('published_parsed') or entry.get('updated_parsed')
+        if parsed:
+            return datetime.fromtimestamp(timegm(parsed), tz=dt_timezone.utc)
+        return self.parse_date(entry.get('published') or entry.get('updated'))
+
     def parse_date(self, date_string):
         """Parse a date string into a datetime object"""
         if not date_string:
@@ -129,7 +139,7 @@ class FeedFetcher:
             
         # Check if timezone info is missing and add UTC if it is
         if dt and dt.tzinfo is None:
-            dt = dt.replace(tzinfo=pytz.UTC)
+            dt = dt.replace(tzinfo=dt_timezone.utc)
             
         return dt if dt else timezone.now()
 

@@ -20,6 +20,8 @@ class RSSFeed(models.Model):
         ('backend', 'Backend'),
         ('python', 'Python'),
         ('devops', 'DevOps'),
+        ('seo', 'SEO'),
+        ('traffic', 'Traffic & Marketing'),
         ('news', 'News'),
         ('general', 'General'),
         ('youtube', 'YouTube'),
@@ -54,14 +56,27 @@ class Content(models.Model):
     description = models.TextField()
     url = models.URLField(max_length=2000)
     image_url = models.URLField(max_length=2000, null=True, blank=True)
-    source = models.ForeignKey(RSSFeed, on_delete=models.CASCADE)
     published_date = models.DateTimeField()
     is_pinned = models.BooleanField(default=False)
     category = models.CharField(max_length=50, null=True, blank=True, default="General")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    source = models.ForeignKey('RSSFeed', on_delete=models.CASCADE, db_index=True) 
-    
+    source = models.ForeignKey('RSSFeed', on_delete=models.CASCADE, db_index=True)
+
+    # Filled in by Claude through the /mcp/ connector (see feeds/mcp.py)
+    ai_summary = models.TextField(blank=True)
+    ai_tags = models.CharField(max_length=300, blank=True, help_text='Comma-separated topic tags')
+    relevance = models.PositiveSmallIntegerField(
+        null=True, blank=True, help_text='1 (skip) to 5 (must read), set by Claude')
+    ai_processed_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def tag_list(self):
+        return [t.strip() for t in self.ai_tags.split(',') if t.strip()]
+
+    @property
+    def display_summary(self):
+        return self.ai_summary or self.description
 
     def __str__(self):
         return self.title

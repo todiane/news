@@ -18,19 +18,19 @@ This is a modern, responsive news aggregator application built with Django and P
 - **Search Functionality** - Search across all aggregated content
 - **Pagination** - Efficient "Load More" functionality for browsing large content collections
 - **YouTube Integration** - Special handling for YouTube feeds with proper thumbnail display
-- **Content Retention Policy** - Automatic cleanup of content older than 60 days unless pinned or favorited
+- **Content Retention Policy** - Automatic cleanup of content older than 30 days unless pinned or favorited
 - **SEO Optimization** - Fully implemented sitemap for better search engine indexing
 
 ## 🛠️ Tech Stack
 
 ### Backend
-- **Django 4.12+** - Core web framework
+- **Django 5.2** - Core web framework
 - **Python 3.10** - Programming language
 - **Django REST Framework** - For API endpoints
 - **Feedparser** - RSS feed parsing library
-- **MySQL/MariaDB** - Database for content storage
+- **SQLite** - Standard Django database, no server needed
 - **Python-dotenv** - Environment variable management
-- **Django Crontab** - For scheduled tasks
+- **cron** - Run `manage.py fetch_feeds` on a schedule
 
 ### Frontend
 - **Tailwind CSS 4.0** - Latest version of the utility-first CSS framework
@@ -39,9 +39,8 @@ This is a modern, responsive news aggregator application built with Django and P
 - **Responsive Design** - Mobile-first approach
 
 ### Scalability & Performance
-- **Redis** - For caching frequently accessed content
+- **Redis (optional)** - Set `REDIS_URL` in `.env`, otherwise in-memory caching is used
 - **Database Optimization** - Proper indexing for improved query performance
-- **Asynchronous Feed Fetching** - For improved performance
 - **Content Retention System** - Automatically cleans up old content to maintain database performance
 
 ### AI Assistant
@@ -225,7 +224,7 @@ Currently, the API is read-only and does not require authentication for content 
 - **Image Handling**: Fallback displays for missing images
 
 ### Content Retention
-- **Automatic Cleanup**: Removes content older than 60 days
+- **Automatic Cleanup**: Removes content older than 30 days
 - **Preservation Rules**: Keeps pinned content and items marked as favorites
 - **Database Optimization**: Maintains reasonable database size for performance
 
@@ -316,3 +315,33 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 Writing my coding journey at [todiane.dev](https://todiane.dev)
 
 Website: [Djangify](https://djangify.com)
+
+
+## Setup / deploy
+
+```bash
+git pull
+pip install -r requirements.txt
+cp .env.example .env        # then edit: secret key, ALLOWED_HOSTS, MCP_TOKEN
+python manage.py migrate
+python manage.py collectstatic --noinput
+python manage.py createsuperuser   # first time only
+python manage.py test
+```
+
+Cron (replaces django-crontab):
+
+```
+0 */6 * * * cd /path/to/news && venv/bin/python manage.py fetch_feeds
+0 3 * * *   cd /path/to/news && venv/bin/python manage.py cleanup_old_content
+```
+
+## Claude connector (AI summaries, tags, relevance, digest)
+
+The app has no AI API key. Instead it exposes an MCP endpoint at `/mcp/` that Claude connects to.
+
+1. Put a long random string in `MCP_TOKEN` in `.env` and restart the app.
+2. In Claude, add a custom connector with the URL `https://news.djangify.com/mcp/` and send the token as `Authorization: Bearer <token>` (or use `https://news.djangify.com/mcp/?token=<token>` if the client can't send headers).
+3. Ask Claude things like "process the new news items", "write this week's AI and SEO digest", or "add the Search Engine Land feed".
+
+Tools: `list_content_to_process`, `save_content_analysis`, `list_top_items`, `list_feeds`, `add_feed`, `fetch_feeds_now`.
