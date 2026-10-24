@@ -12,9 +12,11 @@ def get_all_categories():
     # But only include ones that are actually in use
     used_categories = set(RSSFeed.objects.values_list('category', flat=True).distinct())
     
-    # Return a list of tuples (value, display_name) for each category that's in use
-    return [(cat_value, cat_display) for cat_value, cat_display in RSSFeed.CATEGORY_CHOICES 
-            if cat_value in used_categories]
+    # Return a list of tuples (value, display_name) for each category that's in use,
+    # in alphabetical order by display name
+    in_use = [(cat_value, cat_display) for cat_value, cat_display in RSSFeed.CATEGORY_CHOICES
+              if cat_value in used_categories]
+    return sorted(in_use, key=lambda cat: cat[1].lower())
 
 def index(request, category=None):
     # Get all unique categories for navigation
