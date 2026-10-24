@@ -26,8 +26,8 @@ class RSSFeedAdmin(admin.ModelAdmin):
 
 @admin.register(Content)
 class ContentAdmin(admin.ModelAdmin):
-    list_display = ('title', 'source', 'category', 'published_date', 'is_pinned')
-    list_filter = ('source__category', 'source__feed_type', 'is_pinned', 'published_date')
+    list_display = ('title', 'source', 'category', 'relevance', 'published_date', 'is_pinned')
+    list_filter = ('relevance', 'source__category', 'source__feed_type', 'is_pinned', 'published_date')
     search_fields = ('title', 'description', 'category')
     actions = ['pin_content', 'unpin_content']
 

@@ -60,3 +60,7 @@ static/js/
 
 
 .env.local
+
+.env
+db.sqlite3
+staticfiles/
