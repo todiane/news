@@ -22,6 +22,7 @@ class RSSFeed(models.Model):
         ('devops', 'DevOps'),
         ('seo', 'SEO'),
         ('traffic', 'Traffic & Marketing'),
+        ('content', 'Content Creation'),
         ('news', 'News'),
         ('general', 'General'),
         ('youtube', 'YouTube'),
