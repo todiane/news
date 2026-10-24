@@ -125,7 +125,7 @@ SITE_URL=https://news.dianecorriette.com
 For Gmail the password must be an app password. Then schedule it once a day, for example at 7am (this replaces the separate `fetch_feeds` run for that time slot):
 
 ```
-0 7 * * * cd /home/newsagg/app && /home/newsagg/venv/bin/python manage.py send_daily_digest --fetch
+0 7 * * * cd /home/news && /home/news/venv/bin/python manage.py send_daily_digest --fetch
 ```
 
 ## Claude connector (AI summaries, tags, relevance, digest)
@@ -215,7 +215,7 @@ The main colour is `#6B6FD6`. It and its dark, light and accent shades are CSS v
 
 Production runs at https://news.dianecorriette.com on a VPS:
 
-- gunicorn (`newsagg.service`, port 8013) under systemd, with the code in `/home/newsagg/app`
+- gunicorn (`newsagg.service`, port 8013) under systemd, with the code directly in `/home/news` (virtualenv in `/home/news/venv`)
 - Caddy provides HTTPS and serves `/static/`
 - cron runs `fetch_feeds` every 6 hours and `cleanup_old_content` daily at 03:00
 
@@ -223,15 +223,15 @@ To deploy an update after pushing to GitHub:
 
 ```bash
 ssh corrison
-cd /home/newsagg/app
+cd /home/news
 sudo -u newsagg -H git pull
-sudo -u newsagg -H /home/newsagg/venv/bin/pip install -r requirements.txt
-sudo -u newsagg -H /home/newsagg/venv/bin/python manage.py migrate
-sudo -u newsagg -H /home/newsagg/venv/bin/python manage.py collectstatic --noinput
+sudo -u newsagg -H /home/news/venv/bin/pip install -r requirements.txt
+sudo -u newsagg -H /home/news/venv/bin/python manage.py migrate
+sudo -u newsagg -H /home/news/venv/bin/python manage.py collectstatic --noinput
 sudo systemctl restart newsagg
 ```
 
-Production settings live in `/home/newsagg/app/.env` on the server (`DEBUG=False`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `SITE_URL`, `MCP_TOKEN`). With `DEBUG` off, the app trusts Caddy's forwarded HTTPS header and sends session and CSRF cookies over HTTPS only. Generate migrations locally and commit them; do not run `makemigrations` on the server. The feed list is in the database, so a deploy does not change it.
+Production settings live in `/home/news/.env` on the server (`DEBUG=False`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `SITE_URL`, `MCP_TOKEN`). With `DEBUG` off, the app trusts Caddy's forwarded HTTPS header and sends session and CSRF cookies over HTTPS only. Generate migrations locally and commit them; do not run `makemigrations` on the server. The feed list is in the database, so a deploy does not change it.
 
 `passenger_wsgi.py` is left over from an earlier cPanel deployment and is not used now.
 
