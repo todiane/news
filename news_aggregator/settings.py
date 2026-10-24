@@ -22,6 +22,12 @@ DATABASES = {
 
 SITE_ID = 2
 
+# Behind Caddy (which handles HTTPS): trust its forwarded scheme and send cookies over HTTPS only
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 INSTALLED_APPS = [
     'adminita',
     'django.contrib.sites',
