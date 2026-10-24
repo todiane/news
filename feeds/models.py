@@ -23,6 +23,7 @@ class RSSFeed(models.Model):
         ('seo', 'SEO'),
         ('traffic', 'Traffic & Marketing'),
         ('content', 'Content Creation'),
+        ('creative', 'Creative Coding'),
         ('news', 'News'),
         ('general', 'General'),
         ('youtube', 'YouTube'),
