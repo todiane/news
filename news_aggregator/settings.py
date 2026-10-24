@@ -23,6 +23,7 @@ DATABASES = {
 SITE_ID = 2
 
 INSTALLED_APPS = [
+    'adminita',
     'django.contrib.sites',
     'django.contrib.admin',
     'django.contrib.auth',

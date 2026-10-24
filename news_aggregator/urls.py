@@ -7,6 +7,10 @@ from core.views import robots_txt
 from django.views.static import serve
 from feeds.mcp import mcp_endpoint
 
+admin.site.site_header = "Djangify News Aggregator"
+admin.site.site_title = "Djangify News Aggregator Admin Portal"
+admin.site.index_title = "Welcome to the Djangify News Aggregator Admin Portal"
+
 sitemaps = {
     'static': StaticViewSitemap,
     'categories': CategorySitemap,
