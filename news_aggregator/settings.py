@@ -85,6 +85,21 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 ADMINS = [('Admin', 'djangify@gmail.com')]
 SERVER_EMAIL = 'djangify@gmail.com'
 
+# Daily digest email (manage.py send_daily_digest). Without EMAIL_HOST the email
+# is printed to the terminal instead of sent, so nothing goes out by accident.
+EMAIL_HOST = env('EMAIL_HOST', default='')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_BACKEND = (
+    'django.core.mail.backends.smtp.EmailBackend' if EMAIL_HOST
+    else 'django.core.mail.backends.console.EmailBackend'
+)
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=SERVER_EMAIL)
+DIGEST_RECIPIENTS = env.list('DIGEST_RECIPIENTS', default=[])
+SITE_URL = env('SITE_URL', default='http://127.0.0.1:8000')
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

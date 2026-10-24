@@ -1,0 +1,11 @@
+{% autoescape off %}Djangify News, {{ date|date:"j F Y" }}
+{{ count }} new item{{ count|pluralize }} since yesterday.
+{% for section in sections %}
+{{ section.name|upper }}
+{% for item in section.items %}
+- {{ item.title }} ({{ item.source }})
+  {{ item.url }}{% if item.summary %}
+  {{ item.summary }}{% endif %}
+{% endfor %}{% endfor %}
+Read everything on the site: {{ site_url }}
+{% endautoescape %}

@@ -84,3 +84,36 @@ class MCPTests(TestCase):
     def test_add_feed(self):
         self.assertTrue(self.call('add_feed', {'name': 'X', 'url': 'https://x.com/rss', 'category': 'seo'})['created'])
         self.assertIn('error', self.call('add_feed', {'name': 'Y', 'url': 'https://y.com/rss', 'category': 'nope'}))
+
+
+class DailyDigestTests(TestCase):
+    def setUp(self):
+        self.feed = RSSFeed.objects.create(name='Test', url='https://example.com/rss', category='seo')
+
+    def add_item(self, title, **kwargs):
+        return Content.objects.create(
+            title=title, description='<p>Body &amp; more [Read More]</p>', url='https://example.com/' + title,
+            source=self.feed, published_date=timezone.now(), category='seo', **kwargs)
+
+    @override_settings(DIGEST_RECIPIENTS=['me@example.com'])
+    def test_sends_one_email_with_clean_text(self):
+        from django.core import mail
+        from django.core.management import call_command
+        self.add_item('Quotes &quot;here&quot;')
+        call_command('send_daily_digest')
+        self.assertEqual(len(mail.outbox), 1)
+        msg = mail.outbox[0]
+        self.assertEqual(msg.to, ['me@example.com'])
+        self.assertIn('Quotes "here"', msg.body)
+        self.assertIn('Body & more', msg.body)
+        self.assertNotIn('Read More', msg.body)
+        self.assertIn('SEO', msg.alternatives[0][0])
+
+    @override_settings(DIGEST_RECIPIENTS=['me@example.com'])
+    def test_no_email_when_nothing_new(self):
+        from django.core import mail
+        from django.core.management import call_command
+        item = self.add_item('Old')
+        Content.objects.filter(pk=item.pk).update(created_at=timezone.now() - timedelta(days=3))
+        call_command('send_daily_digest')
+        self.assertEqual(len(mail.outbox), 0)
